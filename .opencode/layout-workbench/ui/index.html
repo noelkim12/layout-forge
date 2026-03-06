@@ -1,0 +1,1627 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layout Workbench</title>
+  <style>
+    :root {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+      --font-mono: "JetBrains Mono", "Fira Code", monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --radius: 8px;
+      --shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+      --transition-fast: 160ms ease;
+      --transition-base: 260ms ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at 20% -10%, #1b2330 0%, #0d1117 45%), var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+
+    body {
+      min-width: 320px;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 18px;
+      display: grid;
+      place-items: center;
+    }
+
+    .workbench {
+      width: min(1400px, 100%);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 4px);
+      background: linear-gradient(170deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0)), var(--bg-secondary);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 280px 1fr 300px;
+      overflow: hidden;
+    }
+
+    .panel {
+      min-height: 78vh;
+      max-height: 86vh;
+      overflow: auto;
+    }
+
+    .sidebar,
+    .info {
+      background: rgba(0, 0, 0, 0.18);
+      border-right: 1px solid var(--border);
+      padding: 18px;
+    }
+
+    .info {
+      border-right: 0;
+      border-left: 1px solid var(--border);
+    }
+
+    .main {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .steps {
+      display: grid;
+      gap: 8px;
+    }
+
+    .step {
+      border: 1px solid var(--border);
+      border-left: 3px solid transparent;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      width: 100%;
+      text-align: left;
+      padding: 10px 10px 10px 12px;
+      cursor: default;
+      transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+      display: grid;
+      gap: 4px;
+    }
+
+    .step.step-clickable {
+      cursor: pointer;
+    }
+
+    .step.step-clickable:hover {
+      transform: translateY(-1px);
+      border-color: #3a4554;
+      background: var(--bg-tertiary);
+    }
+
+    .step.is-active {
+      border-left-color: var(--accent);
+      background: #101b2c;
+    }
+
+    .step-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .step-status {
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .step-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .question-wrap {
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--bg-secondary);
+      padding: 20px;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: question-in var(--transition-base);
+    }
+
+    @keyframes question-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .question-label {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .question-description {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      text-align: left;
+      padding: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+    }
+
+    .choice:hover {
+      border-color: #4a5a70;
+      transform: translateY(-1px);
+    }
+
+    .choice.selected {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .choice-indicator {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #708199;
+      border-radius: 99px;
+      margin-top: 1px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .choice-indicator.checkbox {
+      border-radius: 4px;
+    }
+
+    .choice.selected .choice-indicator {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .choice-indicator::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: transparent;
+    }
+
+    .choice.selected .choice-indicator::after {
+      background: #0b1220;
+    }
+
+    .choice-indicator.checkbox::after {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .choice-title {
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .choice-description {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .field,
+    .textarea,
+    .number-field,
+    .select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .field:focus,
+    .textarea:focus,
+    .number-field:focus,
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .slider-row {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      padding: 16px;
+    }
+
+    .slider-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .slider-value {
+      color: var(--accent);
+      font-size: 24px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .range {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .toggle-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toggle-switch {
+      width: 54px;
+      height: 30px;
+      border-radius: 99px;
+      border: 1px solid #4f5963;
+      background: #263142;
+      position: relative;
+      cursor: pointer;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .toggle-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform var(--transition-fast);
+    }
+
+    .toggle-switch.is-on {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.8);
+    }
+
+    .toggle-switch.is-on::after {
+      transform: translateX(24px);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .btn:hover:not(:disabled) {
+      background: #27303b;
+      border-color: #4d5a6b;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      border-color: var(--accent-hover);
+      background: rgba(121, 192, 255, 0.25);
+    }
+
+    .btn-danger {
+      border-color: #8f3c38;
+      color: #ffd3cf;
+      background: rgba(248, 81, 73, 0.12);
+    }
+
+    .btn-add {
+      margin-right: auto;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 99px;
+      background: #252d35;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2d83dd 0%, var(--accent) 100%);
+      width: 0;
+      transition: width var(--transition-base);
+    }
+
+    .progress-text {
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .history {
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--bg-secondary);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .history-question {
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .history-answer {
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    .empty-note {
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 8px;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+    }
+
+    .toast-wrap {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1400;
+      display: grid;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      border-radius: var(--radius);
+      background: rgba(248, 81, 73, 0.14);
+      border: 1px solid rgba(248, 81, 73, 0.5);
+      color: #ffd9d6;
+      padding: 10px 12px;
+      min-width: 250px;
+      box-shadow: var(--shadow);
+      animation: toast-in 180ms ease;
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.58);
+      z-index: 1300;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    .modal-panel {
+      width: min(760px, 100%);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 10px;
+    }
+
+    .modal-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .option-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .slider-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .skeleton {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      height: 16px;
+      background: linear-gradient(90deg, #222b34 20%, #2d3742 38%, #222b34 60%);
+      background-size: 220% 100%;
+      animation: pulse 1.2s linear infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    .complete {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .complete-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .complete-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--bg-tertiary);
+      display: grid;
+      gap: 4px;
+    }
+
+    .complete-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .complete-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .complete-final {
+      border: 1px solid #2f5c38;
+      background: rgba(63, 185, 80, 0.12);
+      color: #bde9c4;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+
+    .muted {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1200px) {
+      .workbench {
+        grid-template-columns: 240px 1fr 280px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        padding: 10px;
+      }
+
+      .workbench {
+        border-radius: var(--radius);
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-height: auto;
+        max-height: none;
+      }
+
+      .sidebar,
+      .info {
+        border-right: 0;
+        border-left: 0;
+      }
+
+      .sidebar {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .info {
+        border-top: 1px solid var(--border);
+      }
+
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app"></div>
+  <div id="toast-wrap" class="toast-wrap" aria-live="polite"></div>
+  <script>
+    const SESSION_TOKEN = "__SESSION_TOKEN__"
+    const SESSION_ID = "__SESSION_ID__"
+
+    const appRoot = document.getElementById("app")
+    const toastWrap = document.getElementById("toast-wrap")
+
+    const state = {
+      session: null,
+      currentQuestion: null,
+      applicableQuestions: [],
+      progress: { answered: 0, total: 0, percentage: 0 },
+      loading: true,
+      submitting: false,
+      finalized: false,
+      errorMessage: "",
+      activeAnswer: null,
+      questionKey: "",
+      modal: {
+        open: false,
+        label: "",
+        type: "single-select",
+        options: [
+          { id: "option_1", label: "Option 1" },
+          { id: "option_2", label: "Option 2" },
+        ],
+        min: 0,
+        max: 100,
+        step: 1,
+      },
+    }
+
+    const setErrorToast = (message) => {
+      if (!message) {
+        return
+      }
+
+      state.errorMessage = message
+      renderToasts()
+      window.setTimeout(() => {
+        state.errorMessage = ""
+        renderToasts()
+      }, 3000)
+    }
+
+    const escapeHtml = (value) => String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+
+    const optionLabelById = (question, optionId) => {
+      if (!question || !Array.isArray(question.options)) {
+        return optionId
+      }
+
+      const option = question.options.find((entry) => entry.id === optionId)
+      return option ? option.label : optionId
+    }
+
+    const formatAnswerValue = (question, rawValue) => {
+      if (rawValue === undefined || rawValue === null) {
+        return "-"
+      }
+
+      if (question.type === "toggle") {
+        return rawValue ? "On" : "Off"
+      }
+
+      if (Array.isArray(rawValue)) {
+        return rawValue.map((item) => optionLabelById(question, item)).join(", ")
+      }
+
+      if (typeof rawValue === "string" && (question.type === "single-select" || question.type === "multi-select")) {
+        return optionLabelById(question, rawValue)
+      }
+
+      return String(rawValue)
+    }
+
+    const answerExists = (questionId) => Boolean(state.session?.answers?.[questionId])
+
+    const getCurrentQuestionIndex = () => {
+      if (!state.currentQuestion) {
+        return -1
+      }
+
+      return state.applicableQuestions.findIndex((question) => question.id === state.currentQuestion.id)
+    }
+
+    const makeQuestionId = () => `user_q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`
+
+    async function api(path, method = "GET", body = null) {
+      const res = await fetch(path, {
+        method,
+        headers: { "Content-Type": "application/json", "X-Session-Token": SESSION_TOKEN },
+        body: body ? JSON.stringify(body) : null,
+      })
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status}`)
+      }
+      return res.json()
+    }
+
+    const isSessionPayload = (payload) => {
+      if (!payload || typeof payload !== "object") {
+        return false
+      }
+
+      return (
+        "session" in payload
+        && "currentQuestion" in payload
+        && "applicableQuestions" in payload
+        && "progress" in payload
+      )
+    }
+
+    const syncDraftFromCurrentQuestion = () => {
+      if (!state.currentQuestion || !state.session) {
+        state.activeAnswer = null
+        return
+      }
+
+      const existing = state.session.answers[state.currentQuestion.id]
+      const value = existing ? existing.value : state.currentQuestion.defaultValue
+
+      if (state.currentQuestion.type === "multi-select") {
+        if (Array.isArray(value)) {
+          state.activeAnswer = [...value]
+        } else {
+          state.activeAnswer = []
+        }
+        return
+      }
+
+      if (state.currentQuestion.type === "toggle") {
+        state.activeAnswer = Boolean(value)
+        return
+      }
+
+      if (state.currentQuestion.type === "slider") {
+        const fallback = typeof state.currentQuestion.min === "number" ? state.currentQuestion.min : 0
+        const sliderValue = typeof value === "number" ? value : fallback
+        state.activeAnswer = sliderValue
+        return
+      }
+
+      if (value === undefined || value === null) {
+        state.activeAnswer = ""
+        return
+      }
+
+      state.activeAnswer = value
+    }
+
+    const applySessionPayload = (payload) => {
+      state.session = payload.session
+      state.currentQuestion = payload.currentQuestion
+      state.applicableQuestions = Array.isArray(payload.applicableQuestions) ? payload.applicableQuestions : []
+      state.progress = payload.progress || { answered: 0, total: 0, percentage: 0 }
+      state.finalized = payload.session && payload.session.status === "completed"
+
+      const newQuestionKey = state.currentQuestion ? state.currentQuestion.id : "complete"
+      if (newQuestionKey !== state.questionKey) {
+        state.questionKey = newQuestionKey
+        syncDraftFromCurrentQuestion()
+      }
+
+      render()
+    }
+
+    const loadSession = async () => {
+      state.loading = true
+      render()
+
+      try {
+        const payload = await api("/api/session")
+        applySessionPayload(payload)
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Failed to load session")
+      } finally {
+        state.loading = false
+        render()
+      }
+    }
+
+    const submitAnswer = async () => {
+      if (state.submitting || !state.currentQuestion) {
+        return
+      }
+
+      let value = state.activeAnswer
+      const question = state.currentQuestion
+
+      if (question.type === "single-select") {
+        if (!value) {
+          setErrorToast("Pick one option to continue")
+          return
+        }
+      }
+
+      if (question.type === "multi-select") {
+        if (!Array.isArray(value) || value.length === 0) {
+          setErrorToast("Select at least one option to continue")
+          return
+        }
+      }
+
+      if (question.type === "text") {
+        value = typeof value === "string" ? value.trim() : ""
+        if (!value) {
+          setErrorToast("Enter an answer to continue")
+          return
+        }
+      }
+
+      state.submitting = true
+      render()
+
+      try {
+        const payload = await api("/api/answer", "POST", { questionId: question.id, value })
+        applySessionPayload(payload)
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Could not save answer")
+      } finally {
+        state.submitting = false
+        render()
+      }
+    }
+
+    const goBackToIndex = async (toIndex) => {
+      if (state.submitting || toIndex < 0) {
+        return
+      }
+
+      state.submitting = true
+      render()
+
+      try {
+        const payload = await api("/api/back", "POST", { toIndex })
+        applySessionPayload(payload)
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Could not move to selected step")
+      } finally {
+        state.submitting = false
+        render()
+      }
+    }
+
+    const addQuestion = async () => {
+      const label = state.modal.label.trim()
+      const type = state.modal.type
+      if (!label) {
+        setErrorToast("Question label is required")
+        return
+      }
+
+      const question = {
+        id: makeQuestionId(),
+        type,
+        label,
+        userAdded: true,
+      }
+
+      if (type === "single-select" || type === "multi-select") {
+        const normalizedOptions = state.modal.options
+          .map((item) => ({ id: item.id.trim(), label: item.label.trim() }))
+          .filter((item) => item.id && item.label)
+
+        if (normalizedOptions.length === 0) {
+          setErrorToast("Add at least one valid option")
+          return
+        }
+
+        question.options = normalizedOptions
+      }
+
+      if (type === "slider") {
+        const min = Number(state.modal.min)
+        const max = Number(state.modal.max)
+        const step = Number(state.modal.step)
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step) || step <= 0 || max <= min) {
+          setErrorToast("Use valid slider values (max must be greater than min)")
+          return
+        }
+        question.min = min
+        question.max = max
+        question.step = step
+      }
+
+      state.submitting = true
+      render()
+
+      try {
+        const payload = await api("/api/add-question", "POST", { question })
+        applySessionPayload(payload)
+        closeModal()
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Could not add question")
+      } finally {
+        state.submitting = false
+        render()
+      }
+    }
+
+    const completeSession = async () => {
+      if (state.submitting || state.finalized) {
+        return
+      }
+
+      state.submitting = true
+      render()
+
+      try {
+        const payload = await api("/api/complete", "POST")
+        if (isSessionPayload(payload)) {
+          applySessionPayload(payload)
+        } else {
+          if (payload?.session) {
+            state.session = payload.session
+          }
+          state.finalized = true
+          render()
+        }
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Could not complete session")
+      } finally {
+        state.submitting = false
+        render()
+      }
+    }
+
+    const openModal = () => {
+      state.modal.open = true
+      render()
+    }
+
+    const closeModal = () => {
+      state.modal.open = false
+      state.modal.label = ""
+      state.modal.type = "single-select"
+      state.modal.options = [
+        { id: "option_1", label: "Option 1" },
+        { id: "option_2", label: "Option 2" },
+      ]
+      state.modal.min = 0
+      state.modal.max = 100
+      state.modal.step = 1
+      render()
+    }
+
+    const renderSkeleton = () => `
+      <div class="workbench">
+        <aside class="sidebar panel">
+          <p class="section-title">Step List</p>
+          <div class="steps">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+          </div>
+        </aside>
+        <main class="main panel">
+          <div class="skeleton" style="height:26px;"></div>
+          <div class="skeleton" style="height:14px;"></div>
+          <div class="skeleton" style="height:48px;"></div>
+          <div class="skeleton" style="height:48px;"></div>
+          <div class="skeleton" style="height:48px;"></div>
+        </main>
+        <aside class="info panel">
+          <div class="skeleton" style="height:8px;"></div>
+          <div class="skeleton" style="height:14px;margin-top:8px;"></div>
+          <div class="skeleton" style="height:72px;margin-top:14px;"></div>
+        </aside>
+      </div>
+    `
+
+    const renderSteps = () => {
+      const activeIndex = getCurrentQuestionIndex()
+
+      if (!state.applicableQuestions.length) {
+        return "<p class=\"empty-note\">No applicable questions.</p>"
+      }
+
+      return `<div class="steps">${state.applicableQuestions.map((question, index) => {
+        const answered = answerExists(question.id)
+        const isActive = activeIndex === index
+        const clickable = answered && !isActive
+        const status = answered ? "done" : (isActive ? "active" : "next")
+        const statusGlyph = answered ? "[x]" : (isActive ? "[>]" : "[ ]")
+
+        return `
+          <button
+            class="step ${isActive ? "is-active" : ""} ${clickable ? "step-clickable" : ""}"
+            data-action="goto-step"
+            data-index="${index}"
+            ${clickable ? "" : "disabled"}
+            title="${clickable ? "Go back to this step" : "Step unavailable"}"
+          >
+            <div class="step-row">
+              <span>${index + 1}. ${statusGlyph}</span>
+              <span class="step-status">${status}</span>
+            </div>
+            <div class="step-label">${escapeHtml(question.label)}</div>
+          </button>
+        `
+      }).join("")}</div>`
+    }
+
+    const renderSingleSelect = (question) => {
+      const options = Array.isArray(question.options) ? question.options : []
+      return `
+        <div class="choices">
+          ${options.map((option, index) => {
+            const selected = state.activeAnswer === option.id
+            return `
+              <button
+                class="choice ${selected ? "selected" : ""}"
+                data-action="select-single"
+                data-value="${escapeHtml(option.id)}"
+                type="button"
+              >
+                <span class="choice-indicator"></span>
+                <span>
+                  <span class="choice-title">${index + 1}. ${escapeHtml(option.label)}</span>
+                  ${option.description ? `<span class="choice-description">${escapeHtml(option.description)}</span>` : ""}
+                </span>
+              </button>
+            `
+          }).join("")}
+        </div>
+      `
+    }
+
+    const renderMultiSelect = (question) => {
+      const selectedValues = Array.isArray(state.activeAnswer) ? state.activeAnswer : []
+      const options = Array.isArray(question.options) ? question.options : []
+      return `
+        <div class="choices">
+          ${options.map((option) => {
+            const selected = selectedValues.includes(option.id)
+            return `
+              <button
+                class="choice ${selected ? "selected" : ""}"
+                data-action="toggle-multi"
+                data-value="${escapeHtml(option.id)}"
+                type="button"
+              >
+                <span class="choice-indicator checkbox"></span>
+                <span>
+                  <span class="choice-title">${escapeHtml(option.label)}</span>
+                  ${option.description ? `<span class="choice-description">${escapeHtml(option.description)}</span>` : ""}
+                </span>
+              </button>
+            `
+          }).join("")}
+        </div>
+      `
+    }
+
+    const renderTextQuestion = (question) => {
+      const value = typeof state.activeAnswer === "string" ? state.activeAnswer : ""
+      const needsTextarea = /long|detail|describe|explain|context|summary|paragraph|notes?/i.test(question.description || "")
+
+      if (needsTextarea) {
+        return `<textarea class="textarea" data-action="input-text" placeholder="Type your response...">${escapeHtml(value)}</textarea>`
+      }
+
+      return `<input class="field" data-action="input-text" type="text" value="${escapeHtml(value)}" placeholder="Type your response">`
+    }
+
+    const renderSliderQuestion = (question) => {
+      const min = typeof question.min === "number" ? question.min : 0
+      const max = typeof question.max === "number" ? question.max : 100
+      const step = typeof question.step === "number" ? question.step : 1
+      const value = typeof state.activeAnswer === "number" ? state.activeAnswer : min
+
+      return `
+        <div class="slider-row">
+          <div class="slider-meta"><span>Range</span><span>${min} - ${max}</span></div>
+          <div class="slider-value">${value}</div>
+          <input class="range" data-action="input-slider" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+        </div>
+      `
+    }
+
+    const renderToggleQuestion = () => {
+      const enabled = Boolean(state.activeAnswer)
+      return `
+        <div class="toggle-card">
+          <div>
+            <div class="choice-title">Toggle value</div>
+            <div class="choice-description">Use this switch to choose on/off</div>
+          </div>
+          <button type="button" class="toggle-switch ${enabled ? "is-on" : ""}" data-action="toggle-boolean" aria-pressed="${enabled}"></button>
+        </div>
+      `
+    }
+
+    const renderQuestionInput = (question) => {
+      if (question.type === "single-select") {
+        return renderSingleSelect(question)
+      }
+
+      if (question.type === "multi-select") {
+        return renderMultiSelect(question)
+      }
+
+      if (question.type === "text") {
+        return renderTextQuestion(question)
+      }
+
+      if (question.type === "slider") {
+        return renderSliderQuestion(question)
+      }
+
+      return renderToggleQuestion(question)
+    }
+
+    const renderHistory = () => {
+      if (!state.session || !Array.isArray(state.session.history) || state.session.history.length === 0) {
+        return "<p class=\"empty-note\">No decisions yet.</p>"
+      }
+
+      const recent = state.session.history.slice(-8).reverse()
+      return `<div class="history">${recent.map((item) => {
+        const question = state.session.questions.find((entry) => entry.id === item.questionId)
+        const label = question ? question.label : item.questionId
+        const answerText = question ? formatAnswerValue(question, item.value) : String(item.value)
+
+        return `
+          <div class="history-item">
+            <div class="history-question">${escapeHtml(label)}</div>
+            <div class="history-answer">${escapeHtml(answerText)}</div>
+          </div>
+        `
+      }).join("")}</div>`
+    }
+
+    const canSubmitCurrentAnswer = () => {
+      if (!state.currentQuestion) {
+        return false
+      }
+
+      if (state.currentQuestion.type === "single-select") {
+        return Boolean(state.activeAnswer)
+      }
+
+      if (state.currentQuestion.type === "multi-select") {
+        return Array.isArray(state.activeAnswer) && state.activeAnswer.length > 0
+      }
+
+      if (state.currentQuestion.type === "text") {
+        return typeof state.activeAnswer === "string" && state.activeAnswer.trim().length > 0
+      }
+
+      if (state.currentQuestion.type === "slider") {
+        return typeof state.activeAnswer === "number"
+      }
+
+      if (state.currentQuestion.type === "toggle") {
+        return typeof state.activeAnswer === "boolean"
+      }
+
+      return false
+    }
+
+    const renderCompletion = () => {
+      const answers = state.session?.answers || {}
+      const list = state.applicableQuestions.map((question) => {
+        const answer = answers[question.id]
+        const formatted = answer ? formatAnswerValue(question, answer.value) : "-"
+        return `
+          <li class="complete-item">
+            <span class="complete-label">${escapeHtml(question.label)}</span>
+            <span class="complete-value">${escapeHtml(formatted)}</span>
+          </li>
+        `
+      }).join("")
+
+      return `
+        <section class="complete">
+          <h2 class="question-label">All decisions collected</h2>
+          <p class="question-description">Review your answers, then confirm to finish this workbench session.</p>
+          <ul class="complete-list">${list || "<li class=\"empty-note\">No answers recorded.</li>"}</ul>
+          ${state.finalized ? "<div class=\"complete-final\">[ok] Session complete. You can close this tab.</div>" : ""}
+          <div class="actions">
+            <button class="btn btn-primary" data-action="complete-session" ${state.submitting || state.finalized ? "disabled" : ""}>Confirm &amp; Send to OpenCode</button>
+            <span class="muted">Session: ${escapeHtml(SESSION_ID)}</span>
+          </div>
+        </section>
+      `
+    }
+
+    const renderModal = () => {
+      if (!state.modal.open) {
+        return ""
+      }
+
+      const type = state.modal.type
+      const optionEditor = (type === "single-select" || type === "multi-select")
+        ? `
+          <div class="modal-row">
+            <label class="field-label">Options</label>
+            ${state.modal.options.map((entry, index) => `
+              <div class="option-row">
+                <input class="field" data-action="modal-option-id" data-index="${index}" value="${escapeHtml(entry.id)}" placeholder="id">
+                <input class="field" data-action="modal-option-label" data-index="${index}" value="${escapeHtml(entry.label)}" placeholder="label">
+                <button type="button" class="btn btn-danger" data-action="modal-remove-option" data-index="${index}" ${state.modal.options.length === 1 ? "disabled" : ""}>Remove</button>
+              </div>
+            `).join("")}
+            <button type="button" class="btn" data-action="modal-add-option">+ Add option row</button>
+          </div>
+        `
+        : ""
+
+      const sliderEditor = type === "slider"
+        ? `
+          <div class="modal-row">
+            <label class="field-label">Slider Range</label>
+            <div class="slider-grid">
+              <input class="number-field" data-action="modal-min" type="number" value="${state.modal.min}">
+              <input class="number-field" data-action="modal-max" type="number" value="${state.modal.max}">
+              <input class="number-field" data-action="modal-step" type="number" value="${state.modal.step}" min="0.1" step="0.1">
+            </div>
+          </div>
+        `
+        : ""
+
+      return `
+        <div class="modal" role="dialog" aria-modal="true" aria-label="Add Question">
+          <form class="modal-panel" id="add-question-form">
+            <h3 class="modal-title">Add Question</h3>
+            <div class="modal-grid">
+              <div class="modal-row">
+                <label class="field-label" for="modal-label">Label</label>
+                <input id="modal-label" class="field" data-action="modal-label" value="${escapeHtml(state.modal.label)}" placeholder="Question label" required>
+              </div>
+              <div class="modal-row">
+                <label class="field-label" for="modal-type">Type</label>
+                <select id="modal-type" class="select" data-action="modal-type">
+                  ${["single-select", "multi-select", "text", "slider", "toggle"].map((option) => `
+                    <option value="${option}" ${option === type ? "selected" : ""}>${option}</option>
+                  `).join("")}
+                </select>
+              </div>
+            </div>
+            ${optionEditor}
+            ${sliderEditor}
+            <div class="modal-actions">
+              <button type="button" class="btn" data-action="close-modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" ${state.submitting ? "disabled" : ""}>Add</button>
+            </div>
+          </form>
+        </div>
+      `
+    }
+
+    const renderMainPanel = () => {
+      const activeIndex = getCurrentQuestionIndex()
+
+      if (!state.currentQuestion && state.progress.answered === state.progress.total) {
+        return renderCompletion()
+      }
+
+      if (!state.currentQuestion) {
+        return "<div class=\"empty-note\">No current question.</div>"
+      }
+
+      return `
+        <section class="question-wrap" data-question-key="${escapeHtml(state.questionKey)}">
+          <h1 class="question-label">${escapeHtml(state.currentQuestion.label)}</h1>
+          ${state.currentQuestion.description ? `<p class="question-description">${escapeHtml(state.currentQuestion.description)}</p>` : ""}
+          ${renderQuestionInput(state.currentQuestion)}
+          <div class="actions">
+            <button class="btn btn-add" data-action="open-modal">+ Add Question</button>
+            <div>
+              <button class="btn" data-action="back-prev" ${state.submitting || activeIndex <= 0 ? "disabled" : ""}>Back</button>
+              <button class="btn btn-primary" data-action="submit-answer" ${state.submitting || !canSubmitCurrentAnswer() ? "disabled" : ""}>Next</button>
+            </div>
+          </div>
+        </section>
+      `
+    }
+
+    const renderToasts = () => {
+      toastWrap.innerHTML = state.errorMessage ? `<div class="toast">${escapeHtml(state.errorMessage)}</div>` : ""
+    }
+
+    const render = () => {
+      if (state.loading) {
+        appRoot.innerHTML = renderSkeleton()
+        renderToasts()
+        return
+      }
+
+      appRoot.innerHTML = `
+        <div class="workbench">
+          <aside class="sidebar panel">
+            <p class="section-title">Step List</p>
+            ${renderSteps()}
+          </aside>
+          <main class="main panel">
+            ${renderMainPanel()}
+          </main>
+          <aside class="info panel">
+            <p class="section-title">Progress</p>
+            <div class="progress-bar"><div class="progress-fill" style="width: ${state.progress.percentage}%;"></div></div>
+            <div class="progress-text">${state.progress.answered}/${state.progress.total} (${state.progress.percentage}%)</div>
+            <p class="section-title">Decision History</p>
+            ${renderHistory()}
+          </aside>
+        </div>
+        ${renderModal()}
+      `
+
+      renderToasts()
+    }
+
+    const shouldIgnoreGlobalKeys = () => {
+      const active = document.activeElement
+      if (!active) {
+        return false
+      }
+      const tag = active.tagName.toLowerCase()
+      return tag === "input" || tag === "textarea" || tag === "select"
+    }
+
+    document.addEventListener("click", async (event) => {
+      const target = event.target.closest("[data-action]")
+      if (!target) {
+        if (state.modal.open && event.target.classList.contains("modal")) {
+          closeModal()
+        }
+        return
+      }
+
+      const action = target.getAttribute("data-action")
+      const value = target.getAttribute("data-value")
+
+      if (action === "goto-step") {
+        const index = Number(target.getAttribute("data-index"))
+        if (Number.isFinite(index) && index >= 0) {
+          await goBackToIndex(index)
+        }
+        return
+      }
+
+      if (action === "select-single") {
+        state.activeAnswer = value || ""
+        render()
+        return
+      }
+
+      if (action === "toggle-multi") {
+        const nextValues = Array.isArray(state.activeAnswer) ? [...state.activeAnswer] : []
+        const existingIndex = nextValues.indexOf(value)
+        if (existingIndex >= 0) {
+          nextValues.splice(existingIndex, 1)
+        } else if (value) {
+          nextValues.push(value)
+        }
+        state.activeAnswer = nextValues
+        render()
+        return
+      }
+
+      if (action === "toggle-boolean") {
+        state.activeAnswer = !state.activeAnswer
+        render()
+        return
+      }
+
+      if (action === "open-modal") {
+        openModal()
+        return
+      }
+
+      if (action === "close-modal") {
+        closeModal()
+        return
+      }
+
+      if (action === "modal-add-option") {
+        const nextIndex = state.modal.options.length + 1
+        state.modal.options.push({ id: `option_${nextIndex}`, label: `Option ${nextIndex}` })
+        render()
+        return
+      }
+
+      if (action === "modal-remove-option") {
+        const index = Number(target.getAttribute("data-index"))
+        if (state.modal.options.length > 1 && Number.isFinite(index)) {
+          state.modal.options.splice(index, 1)
+        }
+        render()
+        return
+      }
+
+      if (action === "submit-answer") {
+        await submitAnswer()
+        return
+      }
+
+      if (action === "back-prev") {
+        const currentIndex = getCurrentQuestionIndex()
+        if (currentIndex > 0) {
+          await goBackToIndex(currentIndex - 1)
+        }
+        return
+      }
+
+      if (action === "complete-session") {
+        await completeSession()
+      }
+    })
+
+    document.addEventListener("input", (event) => {
+      const target = event.target
+      const action = target.getAttribute("data-action")
+
+      if (action === "input-text") {
+        state.activeAnswer = target.value
+        render()
+        return
+      }
+
+      if (action === "input-slider") {
+        const nextValue = Number(target.value)
+        if (Number.isFinite(nextValue)) {
+          state.activeAnswer = nextValue
+          render()
+        }
+        return
+      }
+
+      if (action === "modal-label") {
+        state.modal.label = target.value
+        return
+      }
+
+      if (action === "modal-type") {
+        state.modal.type = target.value
+        render()
+        return
+      }
+
+      if (action === "modal-min") {
+        state.modal.min = target.value
+        return
+      }
+
+      if (action === "modal-max") {
+        state.modal.max = target.value
+        return
+      }
+
+      if (action === "modal-step") {
+        state.modal.step = target.value
+        return
+      }
+
+      if (action === "modal-option-id") {
+        const index = Number(target.getAttribute("data-index"))
+        if (Number.isFinite(index) && state.modal.options[index]) {
+          state.modal.options[index].id = target.value
+        }
+        return
+      }
+
+      if (action === "modal-option-label") {
+        const index = Number(target.getAttribute("data-index"))
+        if (Number.isFinite(index) && state.modal.options[index]) {
+          state.modal.options[index].label = target.value
+        }
+      }
+    })
+
+    document.addEventListener("submit", async (event) => {
+      const form = event.target
+      if (form && form.id === "add-question-form") {
+        event.preventDefault()
+        await addQuestion()
+      }
+    })
+
+    document.addEventListener("keydown", async (event) => {
+      if (state.modal.open && event.key === "Escape") {
+        closeModal()
+        return
+      }
+
+      if (state.loading || state.submitting || !state.currentQuestion) {
+        return
+      }
+
+      if (event.key === "Enter" && !state.modal.open) {
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : ""
+        const isTextArea = activeTag === "textarea"
+        if (!isTextArea) {
+          event.preventDefault()
+          await submitAnswer()
+        }
+        return
+      }
+
+      if (state.currentQuestion.type !== "single-select" || shouldIgnoreGlobalKeys()) {
+        return
+      }
+
+      if (/^[1-9]$/.test(event.key)) {
+        const choiceIndex = Number(event.key) - 1
+        const options = Array.isArray(state.currentQuestion.options) ? state.currentQuestion.options : []
+        const option = options[choiceIndex]
+        if (option) {
+          state.activeAnswer = option.id
+          render()
+        }
+      }
+    })
+
+    loadSession()
+  </script>
+</body>
+</html>

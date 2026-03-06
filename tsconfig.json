@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": ["bun-types"],
+    "paths": {
+      "@lw/*": ["./.opencode/plugins/lw/*"]
+    }
+  },
+  "include": [".opencode/plugins/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

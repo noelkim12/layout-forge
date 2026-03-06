@@ -1,0 +1,4 @@
+node_modules/
+.opencode/layout-workbench/sessions/
+dist/
+*.js.map

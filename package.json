@@ -1,0 +1,15 @@
+{
+  "name": "opencode-layout-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "latest",
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  }
+}
