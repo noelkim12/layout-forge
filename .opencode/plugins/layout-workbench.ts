@@ -284,6 +284,47 @@ export const LayoutWorkbenchPlugin: Plugin = async (ctx) => {
         },
       }),
 
+      layout_build_prompt: tool({
+        description: "Generates a PromptPacket from the approved preview and requirements. Only callable after preview approval (phase === 'approved'). Transitions session to finished phase. The LLM builds the PromptPacket from session context; this tool submits it to the server.",
+        args: {
+          packet: tool.schema.object({
+            summary: tool.schema.string().describe("Summary of all captured requirements"),
+            approvedPreviewSummary: tool.schema.string().describe("Summary of the approved visual preview"),
+            constraints: tool.schema.array(tool.schema.string()).describe("Fixed layout constraints"),
+            avoid: tool.schema.array(tool.schema.string()).describe("Things to avoid in the layout"),
+            outputFormat: tool.schema.string().describe("Output format description"),
+          }).describe("The PromptPacket with exactly 5 fields"),
+          renderedPrompt: tool.schema.string().describe("The fully rendered prompt text combining all PromptPacket fields"),
+        },
+        async execute(args) {
+          if (!activeServer) {
+            return "No active workbench session. Call layout_open_workbench first."
+          }
+
+          try {
+            const res = await fetch(`${activeServer.url}/api/build-prompt`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Session-Token": activeServer.token,
+              },
+              body: JSON.stringify({ packet: args.packet, renderedPrompt: args.renderedPrompt }),
+            })
+
+            if (!res.ok) {
+              const errorBody = await res.text()
+              return `Failed to build prompt: ${res.status} ${errorBody}`
+            }
+
+            const state = await res.json() as { session: WorkbenchSession }
+            return formatToolResult(state.session)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            return `Failed to build prompt: ${message}`
+          }
+        },
+      }),
+
       layout_await_completion: tool({
         description:
           "Blocks until the user submits their answers for the current round, requests refinement, or abandons the session. The workbench server stays alive after this returns — you can push more questions or a message, then await again. Call layout_close when fully done.",

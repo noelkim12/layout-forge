@@ -1154,6 +1154,22 @@
       border-color: var(--warning) !important;
       background: rgba(210, 153, 34, 0.1) !important;
     }
+
+    .prompt-text {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+      color: var(--text-primary);
+      margin: 0;
+    }
   </style>
 </head>
 <body>
@@ -1190,6 +1206,7 @@
       reviewTab: "visual",
       selectedNodeId: null,
       selectedRevisionId: null,
+      promptModal: { open: false, text: "" },
     }
 
     const setErrorToast = (message) => {
@@ -1521,8 +1538,71 @@
       render()
     }
 
-    const handleSuggestPrompt = () => {
-      setErrorToast("Generating prompt... (not yet implemented — Task 8)")
+    const handleSuggestPrompt = async () => {
+      const session = state.session
+      if (!session || session.phase !== "approved" || !session.approvedPreviewId) return
+
+      // Build PromptPacket from session state
+      const packet = {
+        summary: buildRequirementSummary(session.requirementLedger ?? []),
+        approvedPreviewSummary: buildPreviewSummary(session.visualPreview),
+        constraints: extractConstraints(session.layoutIntent),
+        avoid: extractAvoidList(session.layoutIntent),
+        outputFormat: "Structured component layout with sections matching the approved preview regions"
+      }
+
+      // Build rendered prompt string
+      const renderedPrompt = renderPromptText(packet)
+
+      try {
+        const payload = await api("/api/build-prompt", "POST", { packet, renderedPrompt })
+        applySessionPayload(payload)
+        // Show prompt modal
+        state.promptModal = { open: true, text: renderedPrompt }
+        render()
+      } catch (error) {
+        console.error(error)
+        setErrorToast("Failed to generate prompt")
+      }
+    }
+
+    const buildRequirementSummary = (ledger) => {
+      if (!ledger || ledger.length === 0) return "(no requirements captured)"
+      return ledger.map(r => `${r.label}: ${r.value}`).join("\n")
+    }
+
+    const buildPreviewSummary = (preview) => {
+      if (!preview) return "(no preview)"
+      const outlineLines = (preview.outline ?? []).map(o => `- ${o.title}: ${o.summary}`)
+      return [`Title: ${preview.title}`, ...outlineLines].join("\n")
+    }
+
+    const extractConstraints = (intent) => {
+      return intent?.constraints?.fixed ?? []
+    }
+
+    const extractAvoidList = (intent) => {
+      return intent?.constraints?.avoid ?? []
+    }
+
+    const renderPromptText = (packet) => {
+      const lines = [
+        "# Layout Design Prompt",
+        "",
+        "## Requirements Summary",
+        packet.summary,
+        "",
+        "## Approved Preview",
+        packet.approvedPreviewSummary,
+      ]
+      if (packet.constraints.length > 0) {
+        lines.push("", "## Constraints", ...packet.constraints.map(c => `- ${c}`))
+      }
+      if (packet.avoid.length > 0) {
+        lines.push("", "## Avoid", ...packet.avoid.map(a => `- ${a}`))
+      }
+      lines.push("", "## Output Format", packet.outputFormat)
+      return lines.join("\n")
     }
 
     const renderSkeleton = () => `
@@ -1862,6 +1942,25 @@
               <button type="submit" class="btn btn-primary" ${state.submitting || !state.refineModal.userIntent.trim() ? "disabled" : ""}>Send to AI</button>
             </div>
           </form>
+        </div>
+      `
+    }
+
+    const renderPromptModal = () => {
+      if (!state.promptModal.open) return ""
+
+      return `
+        <div class="modal prompt-modal" role="dialog" aria-modal="true" aria-label="Generated Prompt">
+          <div class="modal-panel" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+            <h3 class="modal-title">Generated Layout Prompt</h3>
+            <div class="modal-row">
+              <pre class="prompt-text">${escapeHtml(state.promptModal.text)}</pre>
+            </div>
+            <div class="modal-actions">
+              <button class="btn" data-action="close-prompt-modal">Close</button>
+              <button class="btn btn-primary" data-action="copy-prompt-to-clipboard">Copy to Clipboard</button>
+            </div>
+          </div>
         </div>
       `
     }
@@ -2228,7 +2327,7 @@
       // Phase-based mode switching
       const phase = state.session?.phase
       if (phase === "reviewing" || phase === "approved") {
-        appRoot.innerHTML = renderReviewMode()
+        appRoot.innerHTML = renderReviewMode() + renderPromptModal()
         renderToasts()
         return
       }
@@ -2252,6 +2351,7 @@
           </aside>
         </div>
         ${renderRefineModal()}
+        ${renderPromptModal()}
       `
 
       renderToasts()
@@ -2271,6 +2371,10 @@
       if (!target) {
         if (state.refineModal.open && event.target.classList.contains("modal")) {
           closeRefineModal()
+        }
+        if (state.promptModal.open && event.target.classList.contains("modal")) {
+          state.promptModal = { open: false, text: "" }
+          render()
         }
         return
       }
@@ -2336,6 +2440,21 @@
 
       if (action === "close-refine-modal") {
         closeRefineModal()
+        return
+      }
+
+      if (action === "close-prompt-modal") {
+        state.promptModal = { open: false, text: "" }
+        render()
+        return
+      }
+
+      if (action === "copy-prompt-to-clipboard") {
+        navigator.clipboard.writeText(state.promptModal.text).then(() => {
+          setErrorToast("Prompt copied to clipboard!")
+        }).catch(() => {
+          setErrorToast("Failed to copy to clipboard")
+        })
         return
       }
 
@@ -2447,7 +2566,7 @@
 
       if (action === "review-suggest-prompt") {
         if (state.session?.phase !== "approved") return
-        handleSuggestPrompt()
+        await handleSuggestPrompt()
         return
       }
 
@@ -2556,6 +2675,12 @@
     document.addEventListener("keydown", async (event) => {
       if (state.refineModal.open && event.key === "Escape") {
         closeRefineModal()
+        return
+      }
+
+      if (state.promptModal.open && event.key === "Escape") {
+        state.promptModal = { open: false, text: "" }
+        render()
         return
       }
 
