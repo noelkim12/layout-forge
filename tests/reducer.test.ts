@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { commitRequirements, reduce } from "../.opencode/plugins/lw/reducer"
-import type { QuestionDefinition, WorkbenchSession } from "../.opencode/plugins/lw/types"
+import type { LayoutIntent, PreviewReview, PromptPacket, QuestionDefinition, VisualPreview, WorkbenchSession } from "../.opencode/plugins/lw/types"
 
 function createTestSession(questions?: QuestionDefinition[]): WorkbenchSession {
   return {
@@ -428,5 +428,155 @@ describe("commitRequirements helper", () => {
     expect(q1Item?.label).toBe("Q1")
     expect(q1Item?.sourceQuestionId).toBe("q1")
     expect(q1Item?.capturedAt).toEqual(expect.any(String))
+  })
+})
+
+describe("SET_LAYOUT_INTENT", () => {
+  test("sets layoutIntent on session", () => {
+    const session = createTestSession()
+    const intent: LayoutIntent = {
+      structure: "sidebar-main",
+      navigation: "top",
+      mainContent: ["editor", "preview"],
+      constraints: { fixed: ["header"], flexible: ["sidebar"], avoid: ["modal"] },
+    }
+
+    const next = reduce(session, { type: "SET_LAYOUT_INTENT", intent })
+
+    expect(next.layoutIntent).toEqual(intent)
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+})
+
+describe("SET_VISUAL_PREVIEW", () => {
+  const makePreview = (id: string): VisualPreview => ({
+    id,
+    title: `Preview ${id}`,
+    cols: 12,
+    rows: 8,
+    nodes: [],
+    outline: [],
+    generatedAt: new Date().toISOString(),
+  })
+
+  test("first preview sets visualPreview with no history", () => {
+    const session = createTestSession()
+    const preview = makePreview("p1")
+
+    const next = reduce(session, { type: "SET_VISUAL_PREVIEW", preview })
+
+    expect(next.visualPreview).toEqual(preview)
+    expect(next.previewHistory).toEqual([])
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+
+  test("second preview pushes old preview to history", () => {
+    const session = createTestSession()
+    const p1 = makePreview("p1")
+    const p2 = makePreview("p2")
+
+    const s1 = reduce(session, { type: "SET_VISUAL_PREVIEW", preview: p1 })
+    const s2 = reduce(s1, { type: "SET_VISUAL_PREVIEW", preview: p2 })
+
+    expect(s2.visualPreview).toEqual(p2)
+    expect(s2.previewHistory).toHaveLength(1)
+    expect(s2.previewHistory![0]).toEqual(p1)
+  })
+})
+
+describe("PUSH_PREVIEW_REVIEW", () => {
+  test("appends review to previewReviews array", () => {
+    const session = createTestSession()
+    const review: PreviewReview = {
+      id: "rev_1",
+      previewId: "p1",
+      type: "approve",
+      message: "Looks good",
+      createdAt: new Date().toISOString(),
+    }
+
+    const next = reduce(session, { type: "PUSH_PREVIEW_REVIEW", review })
+
+    expect(next.previewReviews).toHaveLength(1)
+    expect(next.previewReviews![0]).toEqual(review)
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+
+  test("accumulates multiple reviews", () => {
+    const session = createTestSession()
+    const r1: PreviewReview = {
+      id: "rev_1",
+      previewId: "p1",
+      type: "approve",
+      message: "Fine",
+      createdAt: new Date().toISOString(),
+    }
+    const r2: PreviewReview = {
+      id: "rev_2",
+      previewId: "p1",
+      type: "revise-node",
+      targetNodeId: "node_1",
+      message: "Make sidebar wider",
+      createdAt: new Date().toISOString(),
+    }
+
+    const s1 = reduce(session, { type: "PUSH_PREVIEW_REVIEW", review: r1 })
+    const s2 = reduce(s1, { type: "PUSH_PREVIEW_REVIEW", review: r2 })
+
+    expect(s2.previewReviews).toHaveLength(2)
+    expect(s2.previewReviews![1]!.type).toBe("revise-node")
+  })
+})
+
+describe("APPROVE_PREVIEW", () => {
+  const sessionWithPreview = (): WorkbenchSession => ({
+    ...createTestSession(),
+    visualPreview: {
+      id: "preview_1",
+      title: "Test Preview",
+      cols: 12,
+      rows: 8,
+      nodes: [],
+      outline: [],
+      generatedAt: new Date().toISOString(),
+    },
+  })
+
+  test("valid previewId sets approvedPreviewId and phase to approved", () => {
+    const session = sessionWithPreview()
+
+    const next = reduce(session, { type: "APPROVE_PREVIEW", previewId: "preview_1" })
+
+    expect(next.approvedPreviewId).toBe("preview_1")
+    expect(next.phase).toBe("approved")
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+
+  test("mismatched previewId throws Error", () => {
+    const session = sessionWithPreview()
+
+    expect(() => reduce(session, { type: "APPROVE_PREVIEW", previewId: "wrong_id" })).toThrow(
+      /preview id mismatch/i,
+    )
+  })
+})
+
+describe("SET_PROMPT_PROPOSAL", () => {
+  test("sets promptPacket and renderedPrompt", () => {
+    const session = createTestSession()
+    const packet: PromptPacket = {
+      summary: "Build a dashboard",
+      approvedPreviewSummary: "3-panel layout",
+      constraints: ["responsive", "dark-mode"],
+      avoid: ["modals"],
+      outputFormat: "react-component",
+    }
+    const rendered = "You are building a dashboard with a 3-panel layout..."
+
+    const next = reduce(session, { type: "SET_PROMPT_PROPOSAL", packet, renderedPrompt: rendered })
+
+    expect(next.promptPacket).toEqual(packet)
+    expect(next.renderedPrompt).toBe(rendered)
+    expect(next.updatedAt).toEqual(expect.any(String))
   })
 })

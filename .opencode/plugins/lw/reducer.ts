@@ -1,10 +1,14 @@
 import type {
   Answer,
   AnswerValue,
+  LayoutIntent,
+  PreviewReview,
+  PromptPacket,
   QuestionDefinition,
   RequirementItem,
   RequirementSnapshot,
   SessionMessage,
+  VisualPreview,
   WorkbenchSession,
 } from "./types"
 import { getApplicableQuestions } from "./graph"
@@ -22,6 +26,11 @@ export type Action =
   | { type: "PUSH_MESSAGE"; content: string }
   | { type: "COMMIT_REQUIREMENTS" }
   | { type: "SET_PHASE"; phase: "collecting" | "previewing" | "reviewing" | "approved" | "finished" }
+  | { type: "SET_LAYOUT_INTENT"; intent: LayoutIntent }
+  | { type: "SET_VISUAL_PREVIEW"; preview: VisualPreview }
+  | { type: "PUSH_PREVIEW_REVIEW"; review: PreviewReview }
+  | { type: "APPROVE_PREVIEW"; previewId: string }
+  | { type: "SET_PROMPT_PROPOSAL"; packet: PromptPacket; renderedPrompt: string }
 export function reduce(session: WorkbenchSession, action: Action): WorkbenchSession {
   const now = new Date().toISOString()
 
@@ -216,6 +225,33 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
         phase: to,
         updatedAt: now,
       }
+    }
+
+
+    case "SET_LAYOUT_INTENT": {
+      return { ...session, layoutIntent: action.intent, updatedAt: now }
+    }
+
+    case "SET_VISUAL_PREVIEW": {
+      const newHistory = session.visualPreview
+        ? [...(session.previewHistory ?? []), session.visualPreview]
+        : (session.previewHistory ?? [])
+      return { ...session, visualPreview: action.preview, previewHistory: newHistory, updatedAt: now }
+    }
+
+    case "PUSH_PREVIEW_REVIEW": {
+      return { ...session, previewReviews: [...(session.previewReviews ?? []), action.review], updatedAt: now }
+    }
+
+    case "APPROVE_PREVIEW": {
+      if (session.visualPreview?.id !== action.previewId) {
+        throw new Error(`Preview ID mismatch: expected ${session.visualPreview?.id}, got ${action.previewId}`)
+      }
+      return { ...session, approvedPreviewId: action.previewId, phase: "approved", updatedAt: now }
+    }
+
+    case "SET_PROMPT_PROPOSAL": {
+      return { ...session, promptPacket: action.packet, renderedPrompt: action.renderedPrompt, updatedAt: now }
     }
 
   }
