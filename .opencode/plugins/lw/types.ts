@@ -76,6 +76,76 @@ export interface AsciiPreview {
   generatedAt: string
 }
 
+export interface RequirementItem {
+  key: string
+  label: string
+  value: string | string[] | number | boolean
+  sourceQuestionId: string
+  capturedAt: string
+}
+
+export interface RequirementSnapshot {
+  id: string
+  items: RequirementItem[]
+  createdAt: string
+}
+
+export interface VisualPreviewNode {
+  id: string
+  label: string
+  role: "nav" | "sidebar" | "main" | "inspector" | "bottom" | "toolbar"
+  x: number
+  y: number
+  w: number
+  h: number
+  summary?: string
+}
+
+export interface VisualPreview {
+  id: string
+  title: string
+  cols: number
+  rows: number
+  nodes: VisualPreviewNode[]
+  outline: Array<{ id: string; title: string; summary: string }>
+  raw?: {
+    ascii?: string
+    notes?: string[]
+  }
+  generatedAt: string
+}
+
+export interface PreviewReview {
+  id: string
+  previewId: string
+  targetNodeId?: string
+  type: "approve" | "revise-node" | "ask-followup" | "finish"
+  message: string
+  createdAt: string
+}
+
+export interface LayoutIntent {
+  structure?: string
+  navigation?: string
+  mainContent?: string[]
+  detailPlacement?: string
+  bottomArea?: string
+  density?: number
+  constraints: {
+    fixed: string[]
+    flexible: string[]
+    avoid: string[]
+  }
+}
+
+export interface PromptPacket {
+  summary: string
+  approvedPreviewSummary: string
+  constraints: string[]
+  avoid: string[]
+  outputFormat: string
+}
+
 export interface WorkbenchSession {
   id: string
   opencodeSessionId: string
@@ -88,5 +158,15 @@ export interface WorkbenchSession {
   updatedAt: string
   status: "active" | "processing" | "completed" | "abandoned" | "refinement_requested"
   refinementRequest?: RefinementRequest
+  phase?: "collecting" | "previewing" | "reviewing" | "approved" | "finished"
+  requirementLedger?: RequirementItem[]
+  requirementSnapshots?: RequirementSnapshot[]
+  layoutIntent?: LayoutIntent
+  visualPreview?: VisualPreview
+  previewHistory?: VisualPreview[]
+  previewReviews?: PreviewReview[]
+  approvedPreviewId?: string
+  promptPacket?: PromptPacket
+  renderedPrompt?: string
   messages: SessionMessage[]
 }
