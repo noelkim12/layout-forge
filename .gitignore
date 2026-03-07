@@ -1,4 +1,10 @@
 node_modules/
 .opencode/layout-workbench/sessions/
+.opencode/plans/
 dist/
 *.js.map
+
+# Local artifacts / personal workspace
+.vscode/
+docs/
+review/
