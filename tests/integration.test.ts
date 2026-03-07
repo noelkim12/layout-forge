@@ -595,4 +595,71 @@ describe("integration: preview review flow", () => {
 
     srv.stop()
   })
+
+  test("review loop: push-preview → preview-review → verify review in state", async () => {
+    const session = createSession("ses_review_loop", "Review loop test", PREVIEW_QUESTIONS)
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Setup: answer question + push preview to get to reviewing phase
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ questionId: "layout-mode", value: "sidebar" }),
+    })
+    await fetch(`${srv.url}/api/push-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ intent: TEST_INTENT, preview: TEST_PREVIEW }),
+    })
+
+    // Submit a review
+    const review = {
+      id: "review_test_1",
+      previewId: TEST_PREVIEW.id,
+      targetNodeId: "sidebar",
+      type: "revise-node" as const,
+      message: "Make the sidebar wider",
+      createdAt: new Date().toISOString(),
+    }
+
+    const reviewRes = await fetch(`${srv.url}/api/preview-review`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ review }),
+    })
+    expect(reviewRes.status).toBe(200)
+
+    const reviewBody = await reviewRes.json()
+    expect(reviewBody.previewReviews).toHaveLength(1)
+    expect(reviewBody.previewReviews[0].id).toBe("review_test_1")
+    expect(reviewBody.previewReviews[0].type).toBe("revise-node")
+    expect(reviewBody.previewReviews[0].targetNodeId).toBe("sidebar")
+    expect(reviewBody.previewReviews[0].message).toBe("Make the sidebar wider")
+
+    // Submit another review (ask-followup should transition to collecting)
+    const followupReview = {
+      id: "review_test_2",
+      previewId: TEST_PREVIEW.id,
+      type: "ask-followup" as const,
+      message: "Need more questions",
+      createdAt: new Date().toISOString(),
+    }
+
+    const followupRes = await fetch(`${srv.url}/api/preview-review`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ review: followupReview }),
+    })
+    expect(followupRes.status).toBe(200)
+
+    const followupBody = await followupRes.json()
+    expect(followupBody.previewReviews).toHaveLength(2)
+    expect(followupBody.phase).toBe("collecting")
+
+    srv.stop()
+  })
 })

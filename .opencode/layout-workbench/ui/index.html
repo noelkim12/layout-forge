@@ -1033,6 +1033,127 @@
       background: var(--bg-secondary);
       border-color: var(--accent);
     }
+
+    .diff-container {
+      display: flex;
+      gap: 16px;
+    }
+
+    .diff-side {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .diff-label {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .diff-grid {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 16px 16px;
+      padding: 8px;
+    }
+
+    .review-feedback-area {
+      margin: 12px 0;
+    }
+
+    .review-feedback-area textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-family: var(--font-sans);
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .review-feedback-area textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .review-feedback-list {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .review-feedback-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      padding: 10px;
+      margin-bottom: 8px;
+    }
+
+    .review-type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-right: 8px;
+    }
+
+    .review-type-approve {
+      background: rgba(63, 185, 80, 0.2);
+      color: #3fb950;
+    }
+
+    .review-type-revise-node {
+      background: rgba(210, 153, 34, 0.2);
+      color: #d29922;
+    }
+
+    .review-type-ask-followup {
+      background: rgba(88, 166, 255, 0.2);
+      color: #58a6ff;
+    }
+
+    .review-type-finish {
+      background: rgba(139, 148, 158, 0.2);
+      color: #8b949e;
+    }
+
+    .review-node-ref {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .review-message {
+      margin: 8px 0 4px;
+      font-size: 13px;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .review-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .selected-for-diff {
+      border-color: var(--warning) !important;
+      background: rgba(210, 153, 34, 0.1) !important;
+    }
   </style>
 </head>
 <body>
@@ -1068,6 +1189,7 @@
       pollTimer: null,
       reviewTab: "visual",
       selectedNodeId: null,
+      selectedRevisionId: null,
     }
 
     const setErrorToast = (message) => {
@@ -1397,6 +1519,10 @@
       state.refineModal.open = false
       state.refineModal.userIntent = ""
       render()
+    }
+
+    const handleSuggestPrompt = () => {
+      setErrorToast("Generating prompt... (not yet implemented — Task 8)")
     }
 
     const renderSkeleton = () => `
@@ -1842,11 +1968,12 @@
           ${allRevisions.length === 0
             ? '<p style="color: var(--text-muted)">No revisions yet</p>'
             : allRevisions.map((rev, i) => `
-              <div class="revision-item ${rev.id === current?.id ? 'active' : ''}">
+              <div class="revision-item ${rev.id === current?.id ? 'active' : ''} ${rev.id === state.selectedRevisionId ? 'selected-for-diff' : ''}"
+                   data-action="select-revision"
+                   data-revision-id="${rev.id}">
                 <span class="revision-title">${escapeHtml(rev.title)}</span>
                 <span class="revision-time">${new Date(rev.generatedAt).toLocaleTimeString()}</span>
               </div>
-            `).join('')
           }
         </div>
         <p class="section-title" style="margin-top: 16px">Requirements</p>
@@ -1925,7 +2052,53 @@
     }
 
     const renderDiffTab = () => {
-      return `<div class="review-diff-tab">Select a previous revision from the left panel to compare</div>`
+      const current = state.session?.visualPreview
+      const allRevisions = [...(state.session?.previewHistory ?? []), ...(current ? [current] : [])]
+      const selectedRev = allRevisions.find(r => r.id === state.selectedRevisionId)
+
+      if (!selectedRev || selectedRev.id === current?.id) {
+        return `<div class="review-diff-tab">Select a previous revision from the left panel to compare</div>`
+      }
+
+      return `
+        <div class="diff-container">
+          <div class="diff-side">
+            <h4 class="diff-label">Previous: ${escapeHtml(selectedRev.title)}</h4>
+            ${renderDiffGrid(selectedRev)}
+          </div>
+          <div class="diff-side">
+            <h4 class="diff-label">Current: ${escapeHtml(current?.title ?? 'Current')}</h4>
+            ${renderDiffGrid(current)}
+          </div>
+        </div>
+      `
+    }
+
+    const renderDiffGrid = (vp) => {
+      if (!vp || !vp.nodes || vp.nodes.length === 0) {
+        return `<div class="empty-preview">No nodes</div>`
+      }
+      return `
+        <div class="diff-grid" style="
+          display: grid;
+          grid-template-columns: repeat(${vp.cols}, 1fr);
+          grid-template-rows: repeat(${vp.rows}, 1fr);
+          gap: 2px;
+          height: 200px;
+        ">
+          ${vp.nodes.map(node => `
+            <div class="preview-node"
+                 style="
+                   grid-column: ${node.x} / span ${node.w};
+                   grid-row: ${node.y} / span ${node.h};
+                   background: var(--node-color-${node.role});
+                   border: 1px solid var(--node-border-${node.role});
+                 ">
+              <span class="node-label">${escapeHtml(node.label)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `
     }
 
     const renderPreviewTabs = (vp) => {
@@ -1981,6 +2154,15 @@
           </div>
         `}
         ${renderMessages()}
+        ${state.selectedNodeId ? `
+          <div class="review-feedback-area">
+            <textarea 
+              data-action="input-review-feedback"
+              placeholder="Describe what you'd like to change about this area..."
+              rows="3"
+            >${escapeHtml(state.reviewFeedback || '')}</textarea>
+          </div>
+        ` : ''}
         <div class="review-actions">
           <button class="btn btn-primary" data-action="review-approve">Approve Preview</button>
           <button class="btn btn-secondary ${!state.selectedNodeId ? 'disabled' : ''}"
@@ -1994,6 +2176,19 @@
             Suggest Prompt
           </button>
         </div>
+        ${(state.session?.previewReviews ?? []).length > 0 ? `
+          <div class="review-feedback-list">
+            <p class="section-title">Review History</p>
+            ${[...(state.session?.previewReviews ?? [])].reverse().map(r => `
+              <div class="review-feedback-item">
+                <span class="review-type-badge review-type-${r.type}">${r.type}</span>
+                ${r.targetNodeId ? `<span class="review-node-ref">Node: ${escapeHtml(r.targetNodeId)}</span>` : ''}
+                <p class="review-message">${escapeHtml(r.message)}</p>
+                <span class="review-time">${new Date(r.createdAt).toLocaleTimeString()}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
       `
     }
 
@@ -2174,11 +2369,91 @@
         return
       }
 
-      // Placeholder handlers for review actions (Task 7 will wire these to server)
-      if (action === "review-approve" || action === "review-revise" ||
-          action === "review-followup" || action === "review-finish" ||
-          action === "review-suggest-prompt") {
-        console.log("Review action:", action, "(not yet wired — Task 7)")
+      // Review action handlers
+      if (action === "review-approve") {
+        const previewId = state.session?.visualPreview?.id
+        if (!previewId) return
+        try {
+          const payload = await api("/api/approve-preview", "POST", { previewId })
+          applySessionPayload(payload)
+        } catch (error) {
+          console.error(error)
+          setErrorToast("Failed to approve preview")
+        }
+        return
+      }
+
+      if (action === "review-revise") {
+        const previewId = state.session?.visualPreview?.id
+        if (!previewId || !state.selectedNodeId || !state.reviewFeedback.trim()) return
+        const review = {
+          id: "review_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
+          previewId,
+          targetNodeId: state.selectedNodeId,
+          type: "revise-node",
+          message: state.reviewFeedback,
+          createdAt: new Date().toISOString(),
+        }
+        try {
+          const payload = await api("/api/preview-review", "POST", { review })
+          state.reviewFeedback = ""
+          applySessionPayload(payload)
+        } catch (error) {
+          console.error(error)
+          setErrorToast("Failed to submit revision request")
+        }
+        return
+      }
+
+      if (action === "review-followup") {
+        const previewId = state.session?.visualPreview?.id
+        if (!previewId) return
+        const review = {
+          id: "review_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
+          previewId,
+          type: "ask-followup",
+          message: "Need more questions",
+          createdAt: new Date().toISOString(),
+        }
+        try {
+          const payload = await api("/api/preview-review", "POST", { review })
+          applySessionPayload(payload)
+        } catch (error) {
+          console.error(error)
+          setErrorToast("Failed to request more questions")
+        }
+        return
+      }
+
+      if (action === "review-finish") {
+        const previewId = state.session?.visualPreview?.id
+        if (!previewId) return
+        const review = {
+          id: "review_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7),
+          previewId,
+          type: "finish",
+          message: "Finish without prompt",
+          createdAt: new Date().toISOString(),
+        }
+        try {
+          const payload = await api("/api/preview-review", "POST", { review })
+          applySessionPayload(payload)
+        } catch (error) {
+          console.error(error)
+          setErrorToast("Failed to finish session")
+        }
+        return
+      }
+
+      if (action === "review-suggest-prompt") {
+        if (state.session?.phase !== "approved") return
+        handleSuggestPrompt()
+        return
+      }
+
+      if (action === "select-revision") {
+        state.selectedRevisionId = target.getAttribute("data-revision-id") || null
+        render()
         return
       }
     })
@@ -2256,6 +2531,17 @@
         if (sendBtn) {
           sendBtn.disabled = state.submitting || !state.refineModal.userIntent.trim()
         }
+        return
+      }
+
+      if (action === "input-review-feedback") {
+        state.reviewFeedback = target.value
+        // Update revise button disabled state without full re-render
+        const reviseBtn = document.querySelector('[data-action="review-revise"]')
+        if (reviseBtn) {
+          reviseBtn.disabled = !state.selectedNodeId || !state.reviewFeedback.trim()
+        }
+        return
       }
     })
 
