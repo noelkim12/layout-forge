@@ -2,6 +2,8 @@ import type {
   Answer,
   AnswerValue,
   QuestionDefinition,
+  RequirementItem,
+  RequirementSnapshot,
   SessionMessage,
   WorkbenchSession,
 } from "./types"
@@ -18,6 +20,8 @@ export type Action =
   | { type: "REFINE"; questionId: string; userIntent: string }
   | { type: "SUBMIT_ROUND" }
   | { type: "PUSH_MESSAGE"; content: string }
+  | { type: "COMMIT_REQUIREMENTS" }
+  | { type: "SET_PHASE"; phase: "collecting" | "previewing" | "reviewing" | "approved" | "finished" }
 export function reduce(session: WorkbenchSession, action: Action): WorkbenchSession {
   const now = new Date().toISOString()
 
@@ -133,6 +137,7 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
         currentIndex: 0,
         answers: {},
         history: [],
+        phase: "collecting",
         updatedAt: now,
       }
     }
@@ -178,5 +183,58 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
         updatedAt: now,
       }
     }
+    case "COMMIT_REQUIREMENTS": {
+      const snapshot = commitRequirements(session)
+      const newLedger = [...(session.requirementLedger ?? []), ...snapshot.items]
+      const newSnapshots = [...(session.requirementSnapshots ?? []), snapshot]
+      return {
+        ...session,
+        requirementLedger: newLedger,
+        requirementSnapshots: newSnapshots,
+        updatedAt: now,
+      }
+    }
+
+    case "SET_PHASE": {
+      const from = session.phase
+      const to = action.phase
+      const validTransitions: Array<[string | undefined, string]> = [
+        [undefined, "previewing"],
+        ["collecting", "previewing"],
+        ["previewing", "reviewing"],
+        ["reviewing", "collecting"],
+        ["reviewing", "approved"],
+        ["reviewing", "finished"],
+        ["approved", "finished"],
+      ]
+      const isValid = validTransitions.some(([f, t]) => f === from && t === to)
+      if (!isValid) {
+        throw new Error(`Invalid phase transition: ${from} → ${to}`)
+      }
+      return {
+        ...session,
+        phase: to,
+        updatedAt: now,
+      }
+    }
+
+  }
+}
+
+export function commitRequirements(session: WorkbenchSession): RequirementSnapshot {
+  const applicable = getApplicableQuestions(session.questions, session.answers)
+  const items: RequirementItem[] = applicable
+    .filter(q => session.answers[q.id] !== undefined)
+    .map(q => ({
+      key: q.id,
+      label: q.label,
+      value: session.answers[q.id]!.value,
+      sourceQuestionId: q.id,
+      capturedAt: session.answers[q.id]!.answeredAt,
+    }))
+  return {
+    id: `snap_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    items,
+    createdAt: new Date().toISOString(),
   }
 }

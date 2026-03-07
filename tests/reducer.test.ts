@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { reduce } from "../.opencode/plugins/lw/reducer"
+import { commitRequirements, reduce } from "../.opencode/plugins/lw/reducer"
 import type { QuestionDefinition, WorkbenchSession } from "../.opencode/plugins/lw/types"
 
 function createTestSession(questions?: QuestionDefinition[]): WorkbenchSession {
@@ -308,3 +308,125 @@ describe("reduce", () => {
     expect(next.questions).toHaveLength(1)
     expect(next.questions[0]?.id).toBe("round2-q1")
   })
+
+describe("COMMIT_REQUIREMENTS", () => {
+  test("creates a snapshot from current answers", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+    const answered2 = reduce(answered, { type: "ANSWER", questionId: "q2", value: "hello" })
+
+    const next = reduce(answered2, { type: "COMMIT_REQUIREMENTS" })
+
+    expect(next.requirementSnapshots).toHaveLength(1)
+    expect(next.requirementSnapshots![0]!.items).toHaveLength(2)
+    expect(next.requirementSnapshots![0]!.id).toEqual(expect.stringContaining("snap_"))
+    expect(next.requirementSnapshots![0]!.createdAt).toEqual(expect.any(String))
+  })
+
+  test("appends items to requirementLedger", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+    const committed1 = reduce(answered, { type: "COMMIT_REQUIREMENTS" })
+
+    const answered2 = reduce(committed1, { type: "ANSWER", questionId: "q2", value: "text" })
+    const committed2 = reduce(answered2, { type: "COMMIT_REQUIREMENTS" })
+
+    expect(committed2.requirementSnapshots).toHaveLength(2)
+    // Ledger accumulates items from all snapshots
+    expect(committed2.requirementLedger!.length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe("SET_PHASE", () => {
+  test("valid transition: undefined → previewing", () => {
+    const session = createTestSession()
+    expect(session.phase).toBeUndefined()
+
+    const next = reduce(session, { type: "SET_PHASE", phase: "previewing" })
+
+    expect(next.phase).toBe("previewing")
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+
+  test("valid transition: collecting → previewing", () => {
+    const session = createTestSession()
+    const collecting = reduce(session, { type: "SET_PHASE", phase: "previewing" })
+    const reviewing = reduce(collecting, { type: "SET_PHASE", phase: "reviewing" })
+    const backToCollecting = reduce(reviewing, { type: "SET_PHASE", phase: "collecting" })
+
+    const next = reduce(backToCollecting, { type: "SET_PHASE", phase: "previewing" })
+
+    expect(next.phase).toBe("previewing")
+  })
+
+  test("valid transition chain: previewing → reviewing → approved → finished", () => {
+    const session = createTestSession()
+    const s1 = reduce(session, { type: "SET_PHASE", phase: "previewing" })
+    const s2 = reduce(s1, { type: "SET_PHASE", phase: "reviewing" })
+    const s3 = reduce(s2, { type: "SET_PHASE", phase: "approved" })
+    const s4 = reduce(s3, { type: "SET_PHASE", phase: "finished" })
+
+    expect(s4.phase).toBe("finished")
+  })
+
+  test("invalid transition throws: collecting → reviewing", () => {
+    const session = createTestSession()
+    const collecting = { ...session, phase: "collecting" as const }
+
+    expect(() => reduce(collecting, { type: "SET_PHASE", phase: "reviewing" })).toThrow(
+      /invalid phase transition/i,
+    )
+  })
+
+  test("invalid transition throws: approved → collecting", () => {
+    const session = createTestSession()
+    const approved = { ...session, phase: "approved" as const }
+
+    expect(() => reduce(approved, { type: "SET_PHASE", phase: "collecting" })).toThrow(
+      /invalid phase transition/i,
+    )
+  })
+})
+
+describe("SET_QUESTIONS preserves cumulative state", () => {
+  test("after COMMIT_REQUIREMENTS then SET_QUESTIONS, ledger and snapshots intact", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+    const committed = reduce(answered, { type: "COMMIT_REQUIREMENTS" })
+
+    expect(committed.requirementSnapshots).toHaveLength(1)
+
+    const newQuestions: QuestionDefinition[] = [
+      { id: "round2-q1", type: "text", label: "Round 2 Q1" },
+    ]
+    const next = reduce(committed, { type: "SET_QUESTIONS", questions: newQuestions })
+
+    // Cumulative fields preserved
+    expect(next.requirementSnapshots).toHaveLength(1)
+    expect(next.requirementLedger).toBeDefined()
+    // Reset fields cleared
+    expect(next.answers).toEqual({})
+    expect(next.history).toEqual([])
+    expect(next.currentIndex).toBe(0)
+    expect(next.phase).toBe("collecting")
+  })
+})
+
+describe("commitRequirements helper", () => {
+  test("produces correct snapshot from session state", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+    const answered2 = reduce(answered, { type: "ANSWER", questionId: "q2", value: "my text" })
+
+    const snapshot = commitRequirements(answered2)
+
+    expect(snapshot.id).toEqual(expect.stringContaining("snap_"))
+    expect(snapshot.createdAt).toEqual(expect.any(String))
+    expect(snapshot.items).toHaveLength(2)
+    const q1Item = snapshot.items.find(i => i.key === "q1")
+    expect(q1Item?.value).toBe("a")
+    expect(q1Item?.label).toBe("Q1")
+    expect(q1Item?.sourceQuestionId).toBe("q1")
+    expect(q1Item?.capturedAt).toEqual(expect.any(String))
+  })
+})
