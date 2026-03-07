@@ -780,6 +780,7 @@
       .modal-grid {
         grid-template-columns: 1fr;
       }
+    }
 
     /* Review Mode Styles */
     .review-desktop-guard {
@@ -1205,6 +1206,7 @@
       pollTimer: null,
       reviewTab: "visual",
       selectedNodeId: null,
+      reviewFeedback: "",
       selectedRevisionId: null,
       promptModal: { open: false, text: "" },
     }
@@ -2073,7 +2075,7 @@
                 <span class="revision-title">${escapeHtml(rev.title)}</span>
                 <span class="revision-time">${new Date(rev.generatedAt).toLocaleTimeString()}</span>
               </div>
-          }
+          `).join('')
         </div>
         <p class="section-title" style="margin-top: 16px">Requirements</p>
         <div style="color: var(--text-secondary); font-size: 13px;">
