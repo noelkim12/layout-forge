@@ -1,4 +1,4 @@
-import type { AnswerValue, QuestionDefinition, WorkbenchSession } from "./types"
+import type { AnswerValue, LayoutIntent, PreviewReview, PromptPacket, QuestionDefinition, VisualPreview, WorkbenchSession } from "./types"
 import { getApplicableQuestions, getCurrentQuestion, getProgress } from "./graph"
 import { reduce } from "./reducer"
 import { saveSession } from "./store"
@@ -45,6 +45,13 @@ function buildSessionState(session: WorkbenchSession): {
   applicableQuestions: ReturnType<typeof getApplicableQuestions>
   progress: ReturnType<typeof getProgress>
   layoutPreview: ReturnType<typeof buildAsciiPreview>
+  visualPreview: VisualPreview | null
+  previewHistory: VisualPreview[]
+  previewReviews: PreviewReview[]
+  layoutIntent: LayoutIntent | null
+  promptPacket: PromptPacket | null
+  renderedPrompt: string | null
+  phase: "collecting" | "previewing" | "reviewing" | "approved" | "finished"
 } {
   return {
     session,
@@ -52,6 +59,13 @@ function buildSessionState(session: WorkbenchSession): {
     applicableQuestions: getApplicableQuestions(session.questions, session.answers),
     progress: getProgress(session.questions, session.answers),
     layoutPreview: buildAsciiPreview(session),
+    visualPreview: session.visualPreview ?? null,
+    previewHistory: session.previewHistory ?? [],
+    previewReviews: session.previewReviews ?? [],
+    layoutIntent: session.layoutIntent ?? null,
+    promptPacket: session.promptPacket ?? null,
+    renderedPrompt: session.renderedPrompt ?? null,
+    phase: session.phase ?? "collecting",
   }
 }
 
@@ -222,6 +236,66 @@ export async function startWorkbenchServer(
           currentSession = reduce(currentSession, { type: "PUSH_MESSAGE", content: body.content })
           await saveSession(currentSession, config.baseDir)
           config.onLog?.(`Message pushed to workbench`)
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // LLM pushes a visual preview for user review
+        if (request.method === "POST" && requestUrl.pathname === "/api/push-preview") {
+          const body = (await request.json()) as { intent: LayoutIntent; preview: VisualPreview }
+          currentSession = reduce(currentSession, { type: "COMMIT_REQUIREMENTS" })
+          currentSession = reduce(currentSession, { type: "SET_LAYOUT_INTENT", intent: body.intent })
+          currentSession = reduce(currentSession, { type: "SET_VISUAL_PREVIEW", preview: body.preview })
+          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "previewing" })
+          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "reviewing" })
+          await saveSession(currentSession, config.baseDir)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // User submits a review of the preview
+        if (request.method === "POST" && requestUrl.pathname === "/api/preview-review") {
+          const body = (await request.json()) as { review: PreviewReview }
+          currentSession = reduce(currentSession, { type: "PUSH_PREVIEW_REVIEW", review: body.review })
+          if (body.review.type === "ask-followup") {
+            currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "collecting" })
+          }
+          await saveSession(currentSession, config.baseDir)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // User approves the current preview
+        if (request.method === "POST" && requestUrl.pathname === "/api/approve-preview") {
+          const body = (await request.json()) as { previewId: string }
+          currentSession = reduce(currentSession, { type: "APPROVE_PREVIEW", previewId: body.previewId })
+          await saveSession(currentSession, config.baseDir)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // LLM provides the built prompt for the session
+        if (request.method === "POST" && requestUrl.pathname === "/api/build-prompt") {
+          const body = (await request.json()) as { packet: PromptPacket; renderedPrompt: string }
+          currentSession = reduce(currentSession, { type: "SET_PROMPT_PROPOSAL", packet: body.packet, renderedPrompt: body.renderedPrompt })
+          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "finished" })
+          await saveSession(currentSession, config.baseDir)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 

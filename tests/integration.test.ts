@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { startWorkbenchServer, type WorkbenchServer } from "../.opencode/plugins/lw/server"
 import { createSession } from "../.opencode/plugins/lw/store"
-import type { QuestionDefinition } from "../.opencode/plugins/lw/types"
+import type { LayoutIntent, PromptPacket, QuestionDefinition, VisualPreview } from "../.opencode/plugins/lw/types"
 
 const TEST_QUESTIONS: QuestionDefinition[] = [
   {
@@ -427,3 +427,172 @@ describe("integration: close endpoint", () => {
 })
 
 
+describe("integration: preview review flow", () => {
+  const PREVIEW_QUESTIONS: QuestionDefinition[] = [
+    {
+      id: "layout-mode",
+      type: "single-select",
+      label: "Layout Mode",
+      options: [
+        { id: "sidebar", label: "Sidebar" },
+        { id: "full-width", label: "Full Width" },
+      ],
+    },
+  ]
+
+  const TEST_INTENT: LayoutIntent = {
+    structure: "sidebar-main",
+    navigation: "top-nav",
+    mainContent: ["list", "detail"],
+    constraints: {
+      fixed: ["sidebar-width"],
+      flexible: ["main-content"],
+      avoid: ["popup-modals"],
+    },
+  }
+
+  const TEST_PREVIEW: VisualPreview = {
+    id: "preview_1",
+    title: "Sidebar Layout",
+    cols: 12,
+    rows: 8,
+    nodes: [
+      { id: "nav", label: "Navigation", role: "nav", x: 0, y: 0, w: 12, h: 1 },
+      { id: "sidebar", label: "Sidebar", role: "sidebar", x: 0, y: 1, w: 3, h: 7 },
+      { id: "main", label: "Main Content", role: "main", x: 3, y: 1, w: 9, h: 7 },
+    ],
+    outline: [
+      { id: "nav", title: "Navigation", summary: "Top navigation bar" },
+      { id: "sidebar", title: "Sidebar", summary: "Left sidebar panel" },
+      { id: "main", title: "Main Content", summary: "Primary content area" },
+    ],
+    generatedAt: new Date().toISOString(),
+  }
+
+  const TEST_PACKET: PromptPacket = {
+    summary: "Dashboard with sidebar layout",
+    approvedPreviewSummary: "3-column layout with nav, sidebar, main",
+    constraints: ["sidebar-width: 300px"],
+    avoid: ["popup-modals"],
+    outputFormat: "html-css",
+  }
+
+  function makeHeaders(token: string): Record<string, string> {
+    return {
+      "Content-Type": "application/json",
+      "X-Session-Token": token,
+    }
+  }
+
+  test("POST /api/push-preview transitions to reviewing with preview data", async () => {
+    const session = createSession("ses_push_preview", "Push preview test", PREVIEW_QUESTIONS)
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Answer a question so commitRequirements has data
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ questionId: "layout-mode", value: "sidebar" }),
+    })
+
+    // Push preview
+    const res = await fetch(`${srv.url}/api/push-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ intent: TEST_INTENT, preview: TEST_PREVIEW }),
+    })
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.phase).toBe("reviewing")
+    expect(body.visualPreview).not.toBeNull()
+    expect(body.visualPreview.id).toBe("preview_1")
+    expect(body.layoutIntent).not.toBeNull()
+    expect(body.layoutIntent.structure).toBe("sidebar-main")
+    expect(body.session.requirementLedger).toBeInstanceOf(Array)
+    expect(body.session.requirementLedger.length).toBeGreaterThan(0)
+
+    srv.stop()
+  })
+
+  test("POST /api/approve-preview marks preview approved", async () => {
+    const session = createSession("ses_approve_preview", "Approve preview test", PREVIEW_QUESTIONS)
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Setup: answer + push-preview
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ questionId: "layout-mode", value: "sidebar" }),
+    })
+    await fetch(`${srv.url}/api/push-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ intent: TEST_INTENT, preview: TEST_PREVIEW }),
+    })
+
+    // Approve
+    const res = await fetch(`${srv.url}/api/approve-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ previewId: "preview_1" }),
+    })
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.phase).toBe("approved")
+    expect(body.session.approvedPreviewId).toBe("preview_1")
+
+    srv.stop()
+  })
+
+  test("POST /api/build-prompt finalizes session with prompt", async () => {
+    const session = createSession("ses_build_prompt", "Build prompt test", PREVIEW_QUESTIONS)
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Setup: answer + push-preview + approve
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ questionId: "layout-mode", value: "sidebar" }),
+    })
+    await fetch(`${srv.url}/api/push-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ intent: TEST_INTENT, preview: TEST_PREVIEW }),
+    })
+    await fetch(`${srv.url}/api/approve-preview`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ previewId: "preview_1" }),
+    })
+
+    // Build prompt
+    const res = await fetch(`${srv.url}/api/build-prompt`, {
+      method: "POST",
+      headers: makeHeaders(srv.token),
+      body: JSON.stringify({ packet: TEST_PACKET, renderedPrompt: "Build a dashboard with sidebar layout" }),
+    })
+    expect(res.status).toBe(200)
+
+    const body = await res.json()
+    expect(body.phase).toBe("finished")
+    expect(body.promptPacket).not.toBeNull()
+    expect(body.promptPacket.summary).toBe("Dashboard with sidebar layout")
+    expect(body.session.renderedPrompt).toBe("Build a dashboard with sidebar layout")
+
+    srv.stop()
+  })
+})
