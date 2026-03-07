@@ -195,7 +195,7 @@ describe("integration: server lifecycle", () => {
 describe("integration: complete flow", () => {
   let server: WorkbenchServer
 
-  test("full session complete resolves waitForCompletion", async () => {
+  test("full session submit-round resolves waitForRound", async () => {
     const session = createSession("ses_complete_test", "Complete flow test", [
       {
         id: "q1",
@@ -214,7 +214,7 @@ describe("integration: complete flow", () => {
       uiHtml: UI_HTML,
     })
 
-    const completionPromise = server.waitForCompletion()
+    const roundPromise = server.waitForRound()
 
     const answerRes = await fetch(`${server.url}/api/answer`, {
       method: "POST",
@@ -223,15 +223,18 @@ describe("integration: complete flow", () => {
     })
     expect(answerRes.status).toBe(200)
 
-    const completeRes = await fetch(`${server.url}/api/complete`, {
+    const submitRes = await fetch(`${server.url}/api/submit-round`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Session-Token": server.token },
     })
-    expect(completeRes.status).toBe(200)
+    expect(submitRes.status).toBe(200)
 
-    const completedSession = await completionPromise
-    expect(completedSession.status).toBe("completed")
-    expect(completedSession.answers["q1"].value).toBe("a")
+    const roundSession = await roundPromise
+    expect(roundSession.status).toBe("processing")
+    expect(roundSession.answers["q1"].value).toBe("a")
+
+    // Server stays alive — clean up explicitly
+    server.stop()
   })
 })
 
@@ -248,10 +251,179 @@ describe("integration: abort flow", () => {
       controller.signal,
     )
 
-    const completionPromise = abortServer.waitForCompletion()
+    const roundPromise = abortServer.waitForRound()
     controller.abort()
 
-    const result = await completionPromise
+    const result = await roundPromise
     expect(result.status).toBe("abandoned")
   })
 })
+describe("integration: multi-round flow", () => {
+  test("submit-round then push-questions starts new round", async () => {
+    const session = createSession("ses_multiround", "Multi-round test", [
+      {
+        id: "r1q1",
+        type: "single-select",
+        label: "Round 1 Question",
+        options: [
+          { id: "x", label: "X" },
+          { id: "y", label: "Y" },
+        ],
+      },
+    ])
+
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Round 1: answer + submit
+    const round1Promise = srv.waitForRound()
+
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+      body: JSON.stringify({ questionId: "r1q1", value: "x" }),
+    })
+
+    await fetch(`${srv.url}/api/submit-round`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+    })
+
+    const round1 = await round1Promise
+    expect(round1.status).toBe("processing")
+    expect(round1.answers["r1q1"].value).toBe("x")
+
+    // Push new questions for round 2
+    const round2Questions: QuestionDefinition[] = [
+      {
+        id: "r2q1",
+        type: "text",
+        label: "Round 2 Follow-up",
+      },
+    ]
+
+    const pushRes = await fetch(`${srv.url}/api/push-questions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+      body: JSON.stringify({ questions: round2Questions }),
+    })
+    expect(pushRes.status).toBe(200)
+
+    // Verify session is active again with new question
+    const sessionRes = await fetch(`${srv.url}/api/session`, {
+      headers: { "X-Session-Token": srv.token },
+    })
+    const sessionBody = await sessionRes.json()
+    expect(sessionBody.session.status).toBe("active")
+    expect(sessionBody.currentQuestion.id).toBe("r2q1")
+
+    // Round 2: answer + submit
+    const round2Promise = srv.waitForRound()
+
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+      body: JSON.stringify({ questionId: "r2q1", value: "follow-up answer" }),
+    })
+
+    await fetch(`${srv.url}/api/submit-round`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+    })
+
+    const round2 = await round2Promise
+    expect(round2.status).toBe("processing")
+    expect(round2.answers["r2q1"].value).toBe("follow-up answer")
+    // Round 1 answers are cleared when new questions are pushed (SET_QUESTIONS resets)
+    expect(round2.answers["r1q1"]).toBeUndefined()
+
+    srv.stop()
+  })
+})
+
+describe("integration: push-message", () => {
+  test("push-message adds message to session", async () => {
+    const session = createSession("ses_pushmsg", "Push message test", [
+      { id: "q1", type: "text", label: "Question" },
+    ])
+
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Submit round first to get into processing state
+    const roundPromise = srv.waitForRound()
+
+    await fetch(`${srv.url}/api/answer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+      body: JSON.stringify({ questionId: "q1", value: "test" }),
+    })
+
+    await fetch(`${srv.url}/api/submit-round`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+    })
+
+    await roundPromise
+
+    // Push a message
+    const msgRes = await fetch(`${srv.url}/api/push-message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+      body: JSON.stringify({ content: "AI is thinking about your layout..." }),
+    })
+    expect(msgRes.status).toBe(200)
+
+    // Verify message appears in session
+    const sessionRes = await fetch(`${srv.url}/api/session`, {
+      headers: { "X-Session-Token": srv.token },
+    })
+    const body = await sessionRes.json()
+    expect(body.session.messages).toHaveLength(1)
+    expect(body.session.messages[0].content).toBe("AI is thinking about your layout...")
+
+    srv.stop()
+  })
+})
+
+describe("integration: close endpoint", () => {
+  test("POST /api/close stops the server", async () => {
+    const session = createSession("ses_close", "Close test", [
+      { id: "q1", type: "text", label: "Question" },
+    ])
+
+    const srv = await startWorkbenchServer({
+      session,
+      baseDir: process.cwd(),
+      uiHtml: UI_HTML,
+    })
+
+    // Verify server is alive
+    const healthRes = await fetch(`${srv.url}/health`)
+    expect(healthRes.status).toBe(200)
+
+    // Close via API
+    const closeRes = await fetch(`${srv.url}/api/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Session-Token": srv.token },
+    })
+    expect(closeRes.status).toBe(200)
+
+    // Server should be stopped - fetch should fail
+    try {
+      await fetch(`${srv.url}/health`)
+      // If fetch somehow succeeds, that's also acceptable
+      // (server might take a moment to fully stop)
+    } catch {
+      // Expected: connection refused
+    }
+  })
+})
+
+

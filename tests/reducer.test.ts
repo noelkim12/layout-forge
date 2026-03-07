@@ -32,6 +32,7 @@ function createTestSession(questions?: QuestionDefinition[]): WorkbenchSession {
     currentIndex: 0,
     answers: {},
     history: [],
+    messages: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     status: "active",
@@ -158,4 +159,152 @@ describe("reduce", () => {
     expect(s3.history).toHaveLength(3)
     expect(s3.currentIndex).toBe(3)
   })
+
+  test("TOGGLE_SELECT_MODE switches single-select to multi-select", () => {
+    const session = createTestSession()
+
+    const next = reduce(session, { type: "TOGGLE_SELECT_MODE", questionId: "q1" })
+
+    expect(next.questions[0]?.type).toBe("multi-select")
+  })
+
+  test("TOGGLE_SELECT_MODE switches multi-select to single-select", () => {
+    const questions: QuestionDefinition[] = [
+      {
+        id: "q1",
+        type: "multi-select",
+        label: "Q1",
+        options: [
+          { id: "a", label: "A" },
+          { id: "b", label: "B" },
+        ],
+      },
+    ]
+    const session = createTestSession(questions)
+
+    const next = reduce(session, { type: "TOGGLE_SELECT_MODE", questionId: "q1" })
+
+    expect(next.questions[0]?.type).toBe("single-select")
+  })
+
+  test("TOGGLE_SELECT_MODE converts existing single answer to array", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+
+    const toggled = reduce(answered, { type: "TOGGLE_SELECT_MODE", questionId: "q1" })
+
+    expect(toggled.questions[0]?.type).toBe("multi-select")
+    expect(toggled.answers.q1?.value).toEqual(["a"])
+  })
+
+  test("TOGGLE_SELECT_MODE converts existing multi answer to single", () => {
+    const questions: QuestionDefinition[] = [
+      {
+        id: "q1",
+        type: "multi-select",
+        label: "Q1",
+        options: [
+          { id: "a", label: "A" },
+          { id: "b", label: "B" },
+        ],
+      },
+    ]
+    const session = createTestSession(questions)
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: ["a", "b"] })
+
+    const toggled = reduce(answered, { type: "TOGGLE_SELECT_MODE", questionId: "q1" })
+
+    expect(toggled.questions[0]?.type).toBe("single-select")
+    expect(toggled.answers.q1?.value).toBe("a")
+  })
+
+  test("TOGGLE_SELECT_MODE throws for non-select question types", () => {
+    const session = createTestSession()
+
+    expect(() => reduce(session, { type: "TOGGLE_SELECT_MODE", questionId: "q2" })).toThrow(
+      /cannot toggle/i,
+    )
+  })
+
+  test("TOGGLE_SELECT_MODE throws for unknown questionId", () => {
+    const session = createTestSession()
+
+    expect(() => reduce(session, { type: "TOGGLE_SELECT_MODE", questionId: "missing" })).toThrow(
+      /unknown question/i,
+    )
+  })
+
+  test("SET_QUESTIONS replaces all questions and resets state", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+
+    const newQuestions: QuestionDefinition[] = [
+      { id: "new-q1", type: "text", label: "New Q1" },
+      { id: "new-q2", type: "toggle", label: "New Q2" },
+    ]
+
+    const next = reduce(answered, { type: "SET_QUESTIONS", questions: newQuestions })
+
+    expect(next.questions).toHaveLength(2)
+    expect(next.questions[0]?.id).toBe("new-q1")
+    expect(next.currentIndex).toBe(0)
+    expect(next.answers).toEqual({})
+    expect(next.history).toEqual([])
+    expect(next.status).toBe("active")
+  })
+
+  test("SET_QUESTIONS with empty array results in no questions", () => {
+    const session = createTestSession()
+
+    const next = reduce(session, { type: "SET_QUESTIONS", questions: [] })
+
+    expect(next.questions).toHaveLength(0)
+    expect(next.currentIndex).toBe(0)
+  })
 })
+
+  test("SUBMIT_ROUND sets status to processing", () => {
+    const session = createTestSession()
+    const answered = reduce(session, { type: "ANSWER", questionId: "q1", value: "a" })
+
+    const next = reduce(answered, { type: "SUBMIT_ROUND" })
+
+    expect(next.status).toBe("processing")
+    expect(next.updatedAt).toEqual(expect.any(String))
+  })
+
+  test("PUSH_MESSAGE appends a message", () => {
+    const session = createTestSession()
+
+    const next = reduce(session, { type: "PUSH_MESSAGE", content: "Hello from AI" })
+
+    expect(next.messages).toHaveLength(1)
+    expect(next.messages[0]?.content).toBe("Hello from AI")
+    expect(next.messages[0]?.id).toEqual(expect.stringContaining("msg_"))
+    expect(next.messages[0]?.pushedAt).toEqual(expect.any(String))
+  })
+
+  test("PUSH_MESSAGE accumulates multiple messages", () => {
+    const session = createTestSession()
+    const s1 = reduce(session, { type: "PUSH_MESSAGE", content: "First" })
+    const s2 = reduce(s1, { type: "PUSH_MESSAGE", content: "Second" })
+
+    expect(s2.messages).toHaveLength(2)
+    expect(s2.messages[0]?.content).toBe("First")
+    expect(s2.messages[1]?.content).toBe("Second")
+  })
+
+  test("SET_QUESTIONS resets status to active from processing", () => {
+    const session = createTestSession()
+    const processing = reduce(session, { type: "SUBMIT_ROUND" })
+    expect(processing.status).toBe("processing")
+
+    const newQuestions: QuestionDefinition[] = [
+      { id: "round2-q1", type: "text", label: "Round 2 Q1" },
+    ]
+    const next = reduce(processing, { type: "SET_QUESTIONS", questions: newQuestions })
+
+    expect(next.status).toBe("active")
+    expect(next.questions).toHaveLength(1)
+    expect(next.questions[0]?.id).toBe("round2-q1")
+  })

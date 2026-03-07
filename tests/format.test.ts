@@ -58,6 +58,7 @@ const COMPLETED_SESSION: WorkbenchSession = {
       answeredAt: "2026-03-06T10:02:00Z",
     },
   ],
+  messages: [],
   createdAt: "2026-03-06T10:00:00Z",
   updatedAt: "2026-03-06T10:05:00Z",
   status: "completed",
@@ -79,6 +80,7 @@ describe("format and export", () => {
     const abandonedSession: WorkbenchSession = {
       ...COMPLETED_SESSION,
       status: "abandoned",
+      messages: [],
     }
 
     const result = formatToolResult(abandonedSession)

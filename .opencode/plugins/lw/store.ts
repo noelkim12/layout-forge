@@ -1,4 +1,3 @@
-import type {} from "bun-types"
 import { mkdir, unlink } from "fs/promises"
 import { join } from "path"
 import type { QuestionDefinition, WorkbenchSession } from "./types"
@@ -32,6 +31,7 @@ export function createSession(
     currentIndex: 0,
     answers: {},
     history: [],
+    messages: [],
     createdAt: now,
     updatedAt: now,
     status: "active",
@@ -58,7 +58,12 @@ export async function loadSession(
   }
 
   const content = await sessionFile.text()
-  return JSON.parse(content) as WorkbenchSession
+  const session = JSON.parse(content) as WorkbenchSession
+  // Backward compat: sessions saved before multi-round support lack messages
+  if (!session.messages) {
+    session.messages = []
+  }
+  return session
 }
 
 export async function listSessions(baseDir: string): Promise<string[]> {

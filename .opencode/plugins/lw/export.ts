@@ -1,5 +1,7 @@
+import { writeFile } from "fs/promises"
 import { getApplicableQuestions } from "./graph"
 import type { AnswerValue, QuestionDefinition, WorkbenchSession } from "./types"
+import { buildAsciiPreview } from "./ascii"
 
 function stringifyAnswerValue(question: QuestionDefinition, value: AnswerValue): string {
   if (Array.isArray(value)) {
@@ -24,6 +26,7 @@ function stringifyAnswerValue(question: QuestionDefinition, value: AnswerValue):
 }
 
 export function generateMarkdownPlan(session: WorkbenchSession): string {
+  const preview = buildAsciiPreview(session)
   const applicableQuestions = getApplicableQuestions(session.questions, session.answers)
   const answeredQuestions = applicableQuestions.filter((question) => session.answers[question.id] !== undefined)
   const unansweredQuestions = applicableQuestions.filter((question) => session.answers[question.id] === undefined)
@@ -56,6 +59,22 @@ export function generateMarkdownPlan(session: WorkbenchSession): string {
 
   lines.push(
     "",
+    "## Numbered ASCII Layout",
+    "",
+    "```text",
+    preview.diagram,
+    "```",
+    "",
+    "## Numbered Legend",
+    "",
+  )
+
+  for (const item of preview.legend) {
+    lines.push(`- [${item.number}] ${item.title}: ${item.summary} (${item.status})`)
+  }
+
+  lines.push(
+    "",
     "## Session Metadata",
     "",
     `- Session ID: ${session.id}`,
@@ -82,7 +101,7 @@ export async function exportMarkdownPlan(session: WorkbenchSession, baseDir: str
   const timestamp = `${year}${month}${day}-${hours}${minutes}${seconds}`
   const filePath = `${baseDir}/.opencode/plans/layout/${timestamp}-layout-plan.md`
 
-  await Bun.write(filePath, markdown)
+  await writeFile(filePath, markdown, "utf8")
 
   return filePath
 }

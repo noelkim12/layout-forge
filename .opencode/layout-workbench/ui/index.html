@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <title>Layout Workbench</title>
   <style>
     :root {
@@ -17,7 +20,7 @@
       --success: #3fb950;
       --warning: #d29922;
       --danger: #f85149;
-      --font-mono: "JetBrains Mono", "Fira Code", monospace;
+      --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", "Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       --radius: 8px;
       --shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
@@ -455,6 +458,57 @@
       gap: 8px;
     }
 
+    .preview-box {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      padding: 10px;
+      margin-bottom: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-diagram {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #0c1118;
+      padding: 20px;
+      color: #c9d5e1;
+      font-family: var(--font-mono);
+      font-size: 15px;
+      line-height: 1.35;
+      overflow: auto;
+      white-space: pre;
+      display: flex;
+      justify-content: center;
+    }
+
+    .preview-legend {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .preview-legend-item {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      background: var(--bg-tertiary);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .preview-badge {
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 600;
+      margin-right: 6px;
+    }
+
     .history-item {
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -649,6 +703,33 @@
       font-size: 12px;
     }
 
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .toggle-mode-btn {
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .toggle-mode-btn:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+      background: rgba(88, 166, 255, 0.08);
+    }
+
     @media (max-width: 1200px) {
       .workbench {
         grid-template-columns: 240px 1fr 280px;
@@ -705,24 +786,22 @@
       currentQuestion: null,
       applicableQuestions: [],
       progress: { answered: 0, total: 0, percentage: 0 },
+      layoutPreview: null,
       loading: true,
+      waitingForQuestions: false,
+      processing: false,
+      messages: [],
       submitting: false,
       finalized: false,
       errorMessage: "",
       activeAnswer: null,
       questionKey: "",
-      modal: {
+      refineModal: {
         open: false,
-        label: "",
-        type: "single-select",
-        options: [
-          { id: "option_1", label: "Option 1" },
-          { id: "option_2", label: "Option 2" },
-        ],
-        min: 0,
-        max: 100,
-        step: 1,
+        userIntent: "",
       },
+      refinementSent: false,
+      pollTimer: null,
     }
 
     const setErrorToast = (message) => {
@@ -854,7 +933,14 @@
       state.currentQuestion = payload.currentQuestion
       state.applicableQuestions = Array.isArray(payload.applicableQuestions) ? payload.applicableQuestions : []
       state.progress = payload.progress || { answered: 0, total: 0, percentage: 0 }
+      state.layoutPreview = payload.layoutPreview || null
       state.finalized = payload.session && payload.session.status === "completed"
+      state.processing = payload.session && payload.session.status === "processing"
+      state.messages = payload.session && payload.session.messages ? payload.session.messages : []
+
+      // Detect waiting-for-questions state
+      const hasQuestions = state.session && Array.isArray(state.session.questions) && state.session.questions.length > 0
+      state.waitingForQuestions = !hasQuestions && state.session && state.session.status === "active"
 
       const newQuestionKey = state.currentQuestion ? state.currentQuestion.id : "complete"
       if (newQuestionKey !== state.questionKey) {
@@ -862,7 +948,42 @@
         syncDraftFromCurrentQuestion()
       }
 
+      // Start or stop polling based on waiting state or processing state
+      if (state.waitingForQuestions || state.processing) {
+        startPolling()
+      } else {
+        stopPolling()
+      }
+
       render()
+    }
+
+    const startPolling = () => {
+      if (state.pollTimer) return
+      state.pollTimer = window.setInterval(async () => {
+        try {
+          const payload = await api("/api/session")
+          const currentStatus = state.session?.status
+          const newStatus = payload.session?.status
+          const currentMessagesCount = state.messages?.length || 0
+          const newMessagesCount = payload.session?.messages?.length || 0
+          const currentQuestionsCount = state.session?.questions?.length || 0
+          const newQuestionsCount = payload.session?.questions?.length || 0
+          
+          if (currentStatus !== newStatus || currentMessagesCount !== newMessagesCount || currentQuestionsCount !== newQuestionsCount) {
+            applySessionPayload(payload)
+          }
+        } catch (error) {
+          console.error("Poll error:", error)
+        }
+      }, 1500)
+    }
+
+    const stopPolling = () => {
+      if (state.pollTimer) {
+        window.clearInterval(state.pollTimer)
+        state.pollTimer = null
+      }
     }
 
     const loadSession = async () => {
@@ -946,64 +1067,41 @@
       }
     }
 
-    const addQuestion = async () => {
-      const label = state.modal.label.trim()
-      const type = state.modal.type
-      if (!label) {
-        setErrorToast("Question label is required")
+    const submitRefinement = async () => {
+      const userIntent = state.refineModal.userIntent.trim()
+      if (!userIntent) {
+        setErrorToast("Please describe what you'd like changed")
         return
       }
 
-      const question = {
-        id: makeQuestionId(),
-        type,
-        label,
-        userAdded: true,
-      }
-
-      if (type === "single-select" || type === "multi-select") {
-        const normalizedOptions = state.modal.options
-          .map((item) => ({ id: item.id.trim(), label: item.label.trim() }))
-          .filter((item) => item.id && item.label)
-
-        if (normalizedOptions.length === 0) {
-          setErrorToast("Add at least one valid option")
-          return
-        }
-
-        question.options = normalizedOptions
-      }
-
-      if (type === "slider") {
-        const min = Number(state.modal.min)
-        const max = Number(state.modal.max)
-        const step = Number(state.modal.step)
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(step) || step <= 0 || max <= min) {
-          setErrorToast("Use valid slider values (max must be greater than min)")
-          return
-        }
-        question.min = min
-        question.max = max
-        question.step = step
+      if (!state.currentQuestion) {
+        setErrorToast("No question selected to refine")
+        return
       }
 
       state.submitting = true
       render()
 
       try {
-        const payload = await api("/api/add-question", "POST", { question })
-        applySessionPayload(payload)
-        closeModal()
+        const payload = await api("/api/refine", "POST", {
+          questionId: state.currentQuestion.id,
+          userIntent,
+        })
+        if (payload?.session) {
+          state.session = payload.session
+        }
+        state.refinementSent = true
+        closeRefineModal()
       } catch (error) {
         console.error(error)
-        setErrorToast("Could not add question")
+        setErrorToast("Could not send refinement request")
       } finally {
         state.submitting = false
         render()
       }
     }
 
-    const completeSession = async () => {
+    const submitRound = async () => {
       if (state.submitting || state.finalized) {
         return
       }
@@ -1012,41 +1110,26 @@
       render()
 
       try {
-        const payload = await api("/api/complete", "POST")
-        if (isSessionPayload(payload)) {
-          applySessionPayload(payload)
-        } else {
-          if (payload?.session) {
-            state.session = payload.session
-          }
-          state.finalized = true
-          render()
-        }
+        const payload = await api("/api/submit-round", "POST")
+        applySessionPayload(payload)
       } catch (error) {
         console.error(error)
-        setErrorToast("Could not complete session")
+        setErrorToast("Could not submit round")
       } finally {
         state.submitting = false
         render()
       }
     }
 
-    const openModal = () => {
-      state.modal.open = true
+    const openRefineModal = () => {
+      state.refineModal.open = true
+      state.refineModal.userIntent = ""
       render()
     }
 
-    const closeModal = () => {
-      state.modal.open = false
-      state.modal.label = ""
-      state.modal.type = "single-select"
-      state.modal.options = [
-        { id: "option_1", label: "Option 1" },
-        { id: "option_2", label: "Option 2" },
-      ]
-      state.modal.min = 0
-      state.modal.max = 100
-      state.modal.step = 1
+    const closeRefineModal = () => {
+      state.refineModal.open = false
+      state.refineModal.userIntent = ""
       render()
     }
 
@@ -1080,6 +1163,18 @@
     const renderSteps = () => {
       const activeIndex = getCurrentQuestionIndex()
 
+      if (state.waitingForQuestions) {
+        return `
+          <div class="steps">
+            <div class="skeleton" style="height:42px;"></div>
+            <div class="skeleton" style="height:42px;"></div>
+            <div class="skeleton" style="height:42px;"></div>
+            <div class="skeleton" style="height:42px;"></div>
+          </div>
+          <p class="muted" style="margin-top:8px;">Generating steps...</p>
+        `
+      }
+
       if (!state.applicableQuestions.length) {
         return "<p class=\"empty-note\">No applicable questions.</p>"
       }
@@ -1111,6 +1206,9 @@
 
     const renderSingleSelect = (question) => {
       const options = Array.isArray(question.options) ? question.options : []
+      const isCustomSelected = state.activeAnswer && !options.find(o => o.id === state.activeAnswer)
+      const customValue = isCustomSelected ? state.activeAnswer : ""
+
       return `
         <div class="choices">
           ${options.map((option, index) => {
@@ -1130,6 +1228,13 @@
               </button>
             `
           }).join("")}
+          <label class="choice ${isCustomSelected ? "selected" : ""}" style="cursor: text;">
+            <span class="choice-indicator"></span>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+              <span class="choice-title">직접 입력</span>
+              <input type="text" class="field" data-action="input-custom-single" value="${escapeHtml(customValue)}" placeholder="Type your custom answer..." style="margin-top: 4px; padding: 6px 10px; font-size: 13px;">
+            </div>
+          </label>
         </div>
       `
     }
@@ -1137,6 +1242,11 @@
     const renderMultiSelect = (question) => {
       const selectedValues = Array.isArray(state.activeAnswer) ? state.activeAnswer : []
       const options = Array.isArray(question.options) ? question.options : []
+
+      const customValues = selectedValues.filter(val => !options.find(o => o.id === val))
+      const customValue = customValues.length > 0 ? customValues[0] : ""
+      const isCustomSelected = customValues.length > 0
+
       return `
         <div class="choices">
           ${options.map((option) => {
@@ -1156,6 +1266,13 @@
               </button>
             `
           }).join("")}
+          <label class="choice ${isCustomSelected ? "selected" : ""}" style="cursor: text;">
+            <span class="choice-indicator checkbox"></span>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+              <span class="choice-title">직접 입력</span>
+              <input type="text" class="field" data-action="input-custom-multi" value="${escapeHtml(customValue)}" placeholder="Type your custom answer..." style="margin-top: 4px; padding: 6px 10px; font-size: 13px;">
+            </div>
+          </label>
         </div>
       `
     }
@@ -1267,7 +1384,7 @@
       return false
     }
 
-    const renderCompletion = () => {
+    const renderProcessing = () => {
       const answers = state.session?.answers || {}
       const list = state.applicableQuestions.map((question) => {
         const answer = answers[question.id]
@@ -1282,76 +1399,75 @@
 
       return `
         <section class="complete">
-          <h2 class="question-label">All decisions collected</h2>
-          <p class="question-description">Review your answers, then confirm to finish this workbench session.</p>
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+            <div class="skeleton" style="width: 24px; height: 24px; border-radius: 50%; margin: 0; animation: pulse 1s linear infinite;"></div>
+            <h2 class="question-label" style="margin: 0;">AI가 응답을 처리하고 있습니다...</h2>
+          </div>
+          <p class="question-description">Please wait while the AI processes your answers.</p
           <ul class="complete-list">${list || "<li class=\"empty-note\">No answers recorded.</li>"}</ul>
-          ${state.finalized ? "<div class=\"complete-final\">[ok] Session complete. You can close this tab.</div>" : ""}
+        </section>
+      `
+    }
+
+    const renderCompletion = () => {
+      const answers = state.session?.answers || {}
+      const list = state.applicableQuestions.map((question) => {
+        const answer = answers[question.id]
+        const formatted = answer ? formatAnswerValue(question, answer.value) : "-"
+        return `
+          <li class="complete-item">
+            <span class="complete-label">${escapeHtml(question.label)}</span>
+            <span class="complete-value">${escapeHtml(formatted)}</span>
+          </li>
+        `
+      }).join("")
+
+      if (state.finalized) {
+        return `
+          <section class="complete">
+            <h2 class="question-label">Session Complete</h2>
+            <p class="question-description">All rounds have been completed.</p>
+            <ul class="complete-list">${list || "<li class=\"empty-note\">No answers recorded.</li>"}</ul>
+            <div class="complete-final">[ok] Session complete. You can close this tab.</div>
+          </section>
+        `
+      }
+
+      return `
+        <section class="complete">
+          <h2 class="question-label">All decisions collected</h2>
+          <p class="question-description">Review your answers, then submit to continue.</p>
+          <ul class="complete-list">${list || "<li class=\"empty-note\">No answers recorded.</li>"}</ul>
           <div class="actions">
-            <button class="btn btn-primary" data-action="complete-session" ${state.submitting || state.finalized ? "disabled" : ""}>Confirm &amp; Send to OpenCode</button>
+            <button class="btn btn-primary" data-action="submit-round" ${state.submitting ? "disabled" : ""}>Submit</button>
             <span class="muted">Session: ${escapeHtml(SESSION_ID)}</span>
           </div>
         </section>
       `
     }
 
-    const renderModal = () => {
-      if (!state.modal.open) {
+    const renderRefineModal = () => {
+      if (!state.refineModal.open) {
         return ""
       }
 
-      const type = state.modal.type
-      const optionEditor = (type === "single-select" || type === "multi-select")
-        ? `
-          <div class="modal-row">
-            <label class="field-label">Options</label>
-            ${state.modal.options.map((entry, index) => `
-              <div class="option-row">
-                <input class="field" data-action="modal-option-id" data-index="${index}" value="${escapeHtml(entry.id)}" placeholder="id">
-                <input class="field" data-action="modal-option-label" data-index="${index}" value="${escapeHtml(entry.label)}" placeholder="label">
-                <button type="button" class="btn btn-danger" data-action="modal-remove-option" data-index="${index}" ${state.modal.options.length === 1 ? "disabled" : ""}>Remove</button>
-              </div>
-            `).join("")}
-            <button type="button" class="btn" data-action="modal-add-option">+ Add option row</button>
-          </div>
-        `
-        : ""
-
-      const sliderEditor = type === "slider"
-        ? `
-          <div class="modal-row">
-            <label class="field-label">Slider Range</label>
-            <div class="slider-grid">
-              <input class="number-field" data-action="modal-min" type="number" value="${state.modal.min}">
-              <input class="number-field" data-action="modal-max" type="number" value="${state.modal.max}">
-              <input class="number-field" data-action="modal-step" type="number" value="${state.modal.step}" min="0.1" step="0.1">
-            </div>
-          </div>
-        `
-        : ""
+      const questionLabel = state.currentQuestion ? escapeHtml(state.currentQuestion.label) : ""
 
       return `
-        <div class="modal" role="dialog" aria-modal="true" aria-label="Add Question">
-          <form class="modal-panel" id="add-question-form">
-            <h3 class="modal-title">Add Question</h3>
-            <div class="modal-grid">
-              <div class="modal-row">
-                <label class="field-label" for="modal-label">Label</label>
-                <input id="modal-label" class="field" data-action="modal-label" value="${escapeHtml(state.modal.label)}" placeholder="Question label" required>
-              </div>
-              <div class="modal-row">
-                <label class="field-label" for="modal-type">Type</label>
-                <select id="modal-type" class="select" data-action="modal-type">
-                  ${["single-select", "multi-select", "text", "slider", "toggle"].map((option) => `
-                    <option value="${option}" ${option === type ? "selected" : ""}>${option}</option>
-                  `).join("")}
-                </select>
-              </div>
+        <div class="modal" role="dialog" aria-modal="true" aria-label="Refine Options">
+          <form class="modal-panel" id="refine-form">
+            <h3 class="modal-title">Refine This Question</h3>
+            <div class="modal-row">
+              <label class="field-label">Current Question</label>
+              <div style="padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-primary);color:var(--text-secondary);font-size:14px;">${questionLabel}</div>
             </div>
-            ${optionEditor}
-            ${sliderEditor}
+            <div class="modal-row">
+              <label class="field-label" for="refine-intent">What would you like changed?</label>
+              <textarea id="refine-intent" class="textarea" data-action="refine-intent" placeholder="Describe what options you need, what's missing, or how the question should be different..." style="min-height:120px;">${escapeHtml(state.refineModal.userIntent)}</textarea>
+            </div>
             <div class="modal-actions">
-              <button type="button" class="btn" data-action="close-modal">Cancel</button>
-              <button type="submit" class="btn btn-primary" ${state.submitting ? "disabled" : ""}>Add</button>
+              <button type="button" class="btn" data-action="close-refine-modal">Cancel</button>
+              <button type="submit" class="btn btn-primary" ${state.submitting || !state.refineModal.userIntent.trim() ? "disabled" : ""}>Send to AI</button>
             </div>
           </form>
         </div>
@@ -1360,6 +1476,39 @@
 
     const renderMainPanel = () => {
       const activeIndex = getCurrentQuestionIndex()
+      const isLastQuestion = activeIndex === state.applicableQuestions.length - 1
+
+      if (state.refinementSent) {
+        return `
+          <section class="complete">
+            <h2 class="question-label">Refinement request sent</h2>
+            <p class="question-description">The AI will process your feedback and may ask follow-up questions before re-opening the workbench with updated options.</p>
+            <div class="complete-final">[ok] You can close this tab now.</div>
+          </section>
+        `
+      }
+
+      if (state.processing) {
+        return renderProcessing()
+      }
+
+      if (state.finalized) {
+        return renderCompletion()
+      }
+      if (state.waitingForQuestions) {
+        return `
+          <section class="question-wrap" style="min-height:360px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+            <div class="skeleton" style="width:60%;height:24px;"></div>
+            <div class="skeleton" style="width:40%;height:14px;"></div>
+            <div style="display:grid;gap:10px;width:100%;margin-top:12px;">
+              <div class="skeleton" style="height:52px;"></div>
+              <div class="skeleton" style="height:52px;"></div>
+              <div class="skeleton" style="height:52px;"></div>
+            </div>
+            <p class="muted" style="margin-top:8px;">AI is generating questions...</p>
+          </section>
+        `
+      }
 
       if (!state.currentQuestion && state.progress.answered === state.progress.total) {
         return renderCompletion()
@@ -1369,16 +1518,23 @@
         return "<div class=\"empty-note\">No current question.</div>"
       }
 
+      const nextLabel = isLastQuestion ? "Finish" : "Next"
+
       return `
         <section class="question-wrap" data-question-key="${escapeHtml(state.questionKey)}">
-          <h1 class="question-label">${escapeHtml(state.currentQuestion.label)}</h1>
+          <div class="question-header">
+            <h1 class="question-label">${escapeHtml(state.currentQuestion.label)}</h1>
+            ${(state.currentQuestion.type === "single-select" || state.currentQuestion.type === "multi-select")
+              ? `<button class="toggle-mode-btn" data-action="toggle-select-mode" data-question-id="${escapeHtml(state.currentQuestion.id)}" title="Switch between single and multiple selection">${state.currentQuestion.type === "single-select" ? "Single \u2192 Multi" : "Multi \u2192 Single"}</button>`
+              : ""}
+          </div>
           ${state.currentQuestion.description ? `<p class="question-description">${escapeHtml(state.currentQuestion.description)}</p>` : ""}
           ${renderQuestionInput(state.currentQuestion)}
           <div class="actions">
-            <button class="btn btn-add" data-action="open-modal">+ Add Question</button>
+            <button class="btn btn-add" data-action="open-refine-modal">Refine Options</button>
             <div>
               <button class="btn" data-action="back-prev" ${state.submitting || activeIndex <= 0 ? "disabled" : ""}>Back</button>
-              <button class="btn btn-primary" data-action="submit-answer" ${state.submitting || !canSubmitCurrentAnswer() ? "disabled" : ""}>Next</button>
+              <button class="btn btn-primary" data-action="submit-answer" ${state.submitting || !canSubmitCurrentAnswer() ? "disabled" : ""}>${nextLabel}</button>
             </div>
           </div>
         </section>
@@ -1388,6 +1544,24 @@
     const renderToasts = () => {
       toastWrap.innerHTML = state.errorMessage ? `<div class="toast">${escapeHtml(state.errorMessage)}</div>` : ""
     }
+
+    const renderMessages = () => {
+      if (!state.messages || state.messages.length === 0) {
+        return ""
+      }
+
+      return `
+        <div style="display: grid; gap: 12px; margin-bottom: 8px;">
+          ${state.messages.map(msg => `
+            <div style="border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-secondary); padding: 16px; line-height: 1.6;">
+              <pre style="margin: 0; white-space: pre; overflow-x: auto; font-family: var(--font-mono); font-size: 14px; color: var(--text-primary); line-height: 1.45;">${escapeHtml(msg.content)}</pre>
+            </div>
+          `).join("")}
+        </div>
+      `
+    }
+
+    // renderLayoutPreview removed - layout proposals are now shown via AI messages after Q&A
 
     const render = () => {
       if (state.loading) {
@@ -1403,6 +1577,7 @@
             ${renderSteps()}
           </aside>
           <main class="main panel">
+            ${renderMessages()}
             ${renderMainPanel()}
           </main>
           <aside class="info panel">
@@ -1413,7 +1588,7 @@
             ${renderHistory()}
           </aside>
         </div>
-        ${renderModal()}
+        ${renderRefineModal()}
       `
 
       renderToasts()
@@ -1431,8 +1606,8 @@
     document.addEventListener("click", async (event) => {
       const target = event.target.closest("[data-action]")
       if (!target) {
-        if (state.modal.open && event.target.classList.contains("modal")) {
-          closeModal()
+        if (state.refineModal.open && event.target.classList.contains("modal")) {
+          closeRefineModal()
         }
         return
       }
@@ -1473,29 +1648,31 @@
         return
       }
 
-      if (action === "open-modal") {
-        openModal()
-        return
-      }
-
-      if (action === "close-modal") {
-        closeModal()
-        return
-      }
-
-      if (action === "modal-add-option") {
-        const nextIndex = state.modal.options.length + 1
-        state.modal.options.push({ id: `option_${nextIndex}`, label: `Option ${nextIndex}` })
+      if (action === "toggle-select-mode") {
+        const questionId = target.getAttribute("data-question-id")
+        if (!questionId || state.submitting) return
+        state.submitting = true
         render()
-        return
-      }
-
-      if (action === "modal-remove-option") {
-        const index = Number(target.getAttribute("data-index"))
-        if (state.modal.options.length > 1 && Number.isFinite(index)) {
-          state.modal.options.splice(index, 1)
+        try {
+          const payload = await api("/api/toggle-type", "POST", { questionId })
+          applySessionPayload(payload)
+        } catch (error) {
+          console.error(error)
+          setErrorToast("Could not toggle selection mode")
+        } finally {
+          state.submitting = false
+          render()
         }
-        render()
+        return
+      }
+
+      if (action === "open-refine-modal") {
+        openRefineModal()
+        return
+      }
+
+      if (action === "close-refine-modal") {
+        closeRefineModal()
         return
       }
 
@@ -1512,8 +1689,8 @@
         return
       }
 
-      if (action === "complete-session") {
-        await completeSession()
+      if (action === "submit-round") {
+        await submitRound()
       }
     })
 
@@ -1523,7 +1700,46 @@
 
       if (action === "input-text") {
         state.activeAnswer = target.value
-        render()
+        // Selectively update submit button disabled state without full re-render
+        const submitBtn = document.querySelector('[data-action="submit-answer"]')
+        if (submitBtn) {
+          submitBtn.disabled = state.submitting || !canSubmitCurrentAnswer()
+        }
+        return
+      }
+
+      if (action === "input-custom-single") {
+        state.activeAnswer = target.value
+        const submitBtn = document.querySelector('[data-action="submit-answer"]')
+        if (submitBtn) {
+          submitBtn.disabled = state.submitting || !canSubmitCurrentAnswer()
+        }
+        const choices = target.closest('.choices').querySelectorAll('.choice')
+        choices.forEach((choice) => {
+          choice.classList.remove("selected")
+        })
+        if (target.value) {
+          target.closest('.choice').classList.add('selected')
+        }
+        return
+      }
+
+      if (action === "input-custom-multi") {
+        const options = Array.isArray(state.currentQuestion.options) ? state.currentQuestion.options : []
+        const standardValues = (Array.isArray(state.activeAnswer) ? state.activeAnswer : []).filter(val => options.find(o => o.id === val))
+        
+        if (target.value.trim()) {
+          state.activeAnswer = [...standardValues, target.value]
+          target.closest('.choice').classList.add('selected')
+        } else {
+          state.activeAnswer = standardValues
+          target.closest('.choice').classList.remove('selected')
+        }
+        
+        const submitBtn = document.querySelector('[data-action="submit-answer"]')
+        if (submitBtn) {
+          submitBtn.disabled = state.submitting || !canSubmitCurrentAnswer()
+        }
         return
       }
 
@@ -1531,64 +1747,40 @@
         const nextValue = Number(target.value)
         if (Number.isFinite(nextValue)) {
           state.activeAnswer = nextValue
-          render()
+          // Update slider value display without full re-render
+          const sliderValue = target.closest('.slider-row')?.querySelector('.slider-value')
+          if (sliderValue) {
+            sliderValue.textContent = String(nextValue)
+          }
+          const submitBtn = document.querySelector('[data-action="submit-answer"]')
+          if (submitBtn) {
+            submitBtn.disabled = state.submitting || !canSubmitCurrentAnswer()
+          }
         }
         return
       }
 
-      if (action === "modal-label") {
-        state.modal.label = target.value
-        return
-      }
-
-      if (action === "modal-type") {
-        state.modal.type = target.value
-        render()
-        return
-      }
-
-      if (action === "modal-min") {
-        state.modal.min = target.value
-        return
-      }
-
-      if (action === "modal-max") {
-        state.modal.max = target.value
-        return
-      }
-
-      if (action === "modal-step") {
-        state.modal.step = target.value
-        return
-      }
-
-      if (action === "modal-option-id") {
-        const index = Number(target.getAttribute("data-index"))
-        if (Number.isFinite(index) && state.modal.options[index]) {
-          state.modal.options[index].id = target.value
-        }
-        return
-      }
-
-      if (action === "modal-option-label") {
-        const index = Number(target.getAttribute("data-index"))
-        if (Number.isFinite(index) && state.modal.options[index]) {
-          state.modal.options[index].label = target.value
+      if (action === "refine-intent") {
+        state.refineModal.userIntent = target.value
+        // Selectively update send button disabled state without full re-render
+        const sendBtn = document.querySelector('#refine-form [type="submit"]')
+        if (sendBtn) {
+          sendBtn.disabled = state.submitting || !state.refineModal.userIntent.trim()
         }
       }
     })
 
     document.addEventListener("submit", async (event) => {
       const form = event.target
-      if (form && form.id === "add-question-form") {
+      if (form && form.id === "refine-form") {
         event.preventDefault()
-        await addQuestion()
+        await submitRefinement()
       }
     })
 
     document.addEventListener("keydown", async (event) => {
-      if (state.modal.open && event.key === "Escape") {
-        closeModal()
+      if (state.refineModal.open && event.key === "Escape") {
+        closeRefineModal()
         return
       }
 
@@ -1596,7 +1788,7 @@
         return
       }
 
-      if (event.key === "Enter" && !state.modal.open) {
+      if (event.key === "Enter" && !state.refineModal.open) {
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : ""
         const isTextArea = activeTag === "textarea"
         if (!isTextArea) {

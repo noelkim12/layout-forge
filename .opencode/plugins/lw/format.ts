@@ -1,7 +1,8 @@
 import { getApplicableQuestions } from "./graph"
 import type { AnswerValue, QuestionDefinition, WorkbenchSession } from "./types"
+import { buildAsciiPreview } from "./ascii"
 
-const MAX_TOOL_RESULT_LENGTH = 2048
+const MAX_TOOL_RESULT_LENGTH = 4096
 
 function stringifyAnswerValue(question: QuestionDefinition, value: AnswerValue): string {
   if (Array.isArray(value)) {
@@ -34,8 +35,60 @@ function clampLength(input: string): string {
 }
 
 export function formatToolResult(session: WorkbenchSession): string {
+  const preview = buildAsciiPreview(session)
+  const legendLines = preview.legend.map(
+    (item) => `- [${item.number}] ${item.title}: ${item.summary} (${item.status})`,
+  )
+
   if (session.status === "abandoned") {
-    return "사용자가 워크벤치를 중단했습니다."
+    return "The user has abandoned the workbench session."
+  }
+
+  if (session.status === "refinement_requested" && session.refinementRequest) {
+    const req = session.refinementRequest
+    const refinementLines = [
+      `## Refinement Requested`,
+      "",
+      `**Question**: ${req.questionLabel}`,
+      `**User Intent**: ${req.userIntent}`,
+    ]
+
+    if (req.currentOptions && req.currentOptions.length > 0) {
+      refinementLines.push("", "**Current Options**:")
+      for (const opt of req.currentOptions) {
+        refinementLines.push(`- ${opt.label}${opt.description ? `: ${opt.description}` : ""}`)
+      }
+    }
+
+    const refApplicable = getApplicableQuestions(session.questions, session.answers)
+    const refAnswered = refApplicable
+      .filter((question) => session.answers[question.id] !== undefined)
+      .map((question) => {
+        const answer = session.answers[question.id]
+        const value = stringifyAnswerValue(question, answer.value)
+        return `- ${question.label}: ${value}`
+      })
+
+    if (refAnswered.length > 0) {
+      refinementLines.push("", "## Previous Answers", ...refAnswered)
+    }
+
+    refinementLines.push(
+      "",
+      "## Numbered ASCII Layout",
+      "```text",
+      preview.diagram,
+      "```",
+      "",
+      "## Legend",
+      ...legendLines,
+      "",
+      "Provide feedback by section number. Example: I want section [3] to be wider.",
+    )
+
+    refinementLines.push("", `Session ID: ${session.id}`)
+
+    return clampLength(refinementLines.join("\n"))
   }
 
   const applicableQuestions = getApplicableQuestions(session.questions, session.answers)
@@ -57,11 +110,33 @@ export function formatToolResult(session: WorkbenchSession): string {
     "",
     "## Answers",
     ...(answeredLines.length > 0 ? answeredLines : ["- (none)"]),
+    "",
+    "## Numbered ASCII Layout",
+    "```text",
+    preview.diagram,
+    "```",
+    "",
+    "## Legend",
+    ...legendLines,
+    "",
+    "Provide feedback by section number. Example: I want section [2] to be more compact.",
   ]
 
   if (unansweredLines.length > 0) {
     lines.push("", "## Unanswered Questions", ...unansweredLines)
   }
+
+  lines.push(
+    "",
+    "## Next Steps (MANDATORY — do NOT skip)",
+    "1. Push the layout proposal as a message to the workbench using layout_push_message (include the ASCII diagram and a summary of key decisions).",
+    "2. Push a feedback question round using layout_push_questions with a single-select question asking: 'Does this layout match your vision?' with options like 'Approve — looks good', 'Needs changes — I have feedback', etc.",
+    "3. Call layout_await_completion to wait for the user's response.",
+    "4. If the user requests changes, refine and repeat from step 1.",
+    "5. Only call layout_close AFTER the user explicitly approves the layout.",
+    "",
+    "CRITICAL: Do NOT call layout_close before the user has reviewed and approved the layout.",
+  )
 
   lines.push("", `Session ID: ${session.id}`)
 

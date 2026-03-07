@@ -38,6 +38,7 @@ export interface QuestionDefinition {
 
   required?: boolean
   userAdded?: boolean
+  allowCustom?: boolean
 }
 
 export type AnswerValue = string | string[] | number | boolean
@@ -46,6 +47,33 @@ export interface Answer {
   questionId: string
   value: AnswerValue
   answeredAt: string
+}
+
+export interface RefinementRequest {
+  questionId: string
+  questionLabel: string
+  userIntent: string
+  currentOptions?: QuestionOption[]
+  requestedAt: string
+}
+
+export interface SessionMessage {
+  id: string
+  content: string
+  pushedAt: string
+}
+
+export interface AsciiPreviewSection {
+  number: number
+  title: string
+  summary: string
+  status: "decided" | "pending"
+}
+
+export interface AsciiPreview {
+  diagram: string
+  legend: AsciiPreviewSection[]
+  generatedAt: string
 }
 
 export interface WorkbenchSession {
@@ -58,5 +86,7 @@ export interface WorkbenchSession {
   history: Answer[]
   createdAt: string
   updatedAt: string
-  status: "active" | "completed" | "abandoned"
+  status: "active" | "processing" | "completed" | "abandoned" | "refinement_requested"
+  refinementRequest?: RefinementRequest
+  messages: SessionMessage[]
 }

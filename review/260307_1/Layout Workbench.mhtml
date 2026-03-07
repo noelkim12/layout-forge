@@ -1,0 +1,887 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: http://127.0.0.1:33939/
+Subject: Layout Workbench
+Date: Sat, 7 Mar 2026 00:34:13 +0900
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--bujYSk4HQdktffXBB75DTWzw7UQkQNsUK8kCEEiqie----"
+
+
+------MultipartBoundary--bujYSk4HQdktffXBB75DTWzw7UQkQNsUK8kCEEiqie----
+Content-Type: text/html
+Content-ID: <frame-1D3E9EA8C434A98307C3A7D5E81AB85A@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: http://127.0.0.1:33939/
+
+<!DOCTYPE html><html lang=3D"en"><head><meta http-equiv=3D"Content-Type" co=
+ntent=3D"text/html; charset=3DUTF-8"><link rel=3D"stylesheet" type=3D"text/=
+css" href=3D"cid:css-871ac016-d956-4b84-9940-bd9004dfdad5@mhtml.blink" />
+ =20
+  <meta name=3D"viewport" content=3D"width=3Ddevice-width, initial-scale=3D=
+1">
+  <title>Layout Workbench</title>
+ =20
+<link rel=3D"stylesheet" type=3D"text/css" href=3D"chrome-extension://pdjho=
+kodhiaaphbgopajhalchjhmflae/modal.css"></head>
+<body class=3D"lang-ko">
+  <div id=3D"app" class=3D"app">
+        <div class=3D"workbench">
+          <aside class=3D"sidebar panel">
+            <p class=3D"section-title">Step List</p>
+            <div class=3D"steps">
+          <button class=3D"step is-active " data-action=3D"goto-step" data-=
+index=3D"0" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>1. [&gt;]</span>
+              <span class=3D"step-status">active</span>
+            </div>
+            <div class=3D"step-label">Activity Bar =EC=82=AC=EC=9D=B4=EB=93=
+=9C=EB=B0=94 =EA=B5=AC=EC=84=B1</div>
+          </button>
+       =20
+          <button class=3D"step  " data-action=3D"goto-step" data-index=3D"=
+1" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>2. [ ]</span>
+              <span class=3D"step-status">next</span>
+            </div>
+            <div class=3D"step-label">=EC=97=90=EB=94=94=ED=84=B0 =EC=98=81=
+=EC=97=AD =EA=B8=B0=EB=B3=B8 =EB=B0=B0=EC=B9=98</div>
+          </button>
+       =20
+          <button class=3D"step  " data-action=3D"goto-step" data-index=3D"=
+2" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>3. [ ]</span>
+              <span class=3D"step-status">next</span>
+            </div>
+            <div class=3D"step-label">Pipeline Simulator =ED=91=9C=EC=8B=9C=
+ =EB=B0=A9=EC=8B=9D</div>
+          </button>
+       =20
+          <button class=3D"step  " data-action=3D"goto-step" data-index=3D"=
+3" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>4. [ ]</span>
+              <span class=3D"step-status">next</span>
+            </div>
+            <div class=3D"step-label">.charx =EC=BA=90=EB=A6=AD=ED=84=B0 =
+=EC=B9=B4=EB=93=9C =EB=B7=B0=EC=96=B4 =EB=A0=88=EC=9D=B4=EC=95=84=EC=9B=83<=
+/div>
+          </button>
+       =20
+          <button class=3D"step  " data-action=3D"goto-step" data-index=3D"=
+4" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>5. [ ]</span>
+              <span class=3D"step-status">next</span>
+            </div>
+            <div class=3D"step-label">=EC=A7=84=EB=8B=A8 =EA=B2=B0=EA=B3=BC=
+ =ED=91=9C=EC=8B=9C =EC=9C=84=EC=B9=98</div>
+          </button>
+       =20
+          <button class=3D"step  " data-action=3D"goto-step" data-index=3D"=
+5" disabled=3D"" title=3D"Step unavailable">
+            <div class=3D"step-row">
+              <span>6. [ ]</span>
+              <span class=3D"step-status">next</span>
+            </div>
+            <div class=3D"step-label">UI =EC=A0=95=EB=B3=B4 =EB=B0=80=EB=8F=
+=84</div>
+          </button>
+        </div>
+          </aside>
+          <main class=3D"main panel">
+            <p class=3D"section-title">Current Layout Preview</p>
+           =20
+        <section class=3D"preview-box">
+          <pre class=3D"preview-diagram">=E2=94=8C=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=90
+=E2=94=82Numbered Layout Preview (Draft)                                   =
+           =E2=94=82
+=E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=A4
+=E2=94=82[1] Top Navigation: Pending decision                              =
+           =E2=94=82
+=E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=AC=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=AC=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=A4
+=E2=94=82[2] Left Panel         =E2=94=82[3] Main Workspace           =E2=
+=94=82[4] Right Panel        =E2=94=82
+=E2=94=82Pending decision       =E2=94=82Pending decision             =E2=
+=94=82Pending decision       =E2=94=82
+=E2=94=9C=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=A4
+=E2=94=82[5] Footer and Secondary: Pending decision                        =
+           =E2=94=82
+=E2=94=94=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=
+=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=
+=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=E2=94=80=
+=E2=94=80=E2=94=80=E2=94=80=E2=94=98</pre>
+          <ul class=3D"preview-legend">
+          <li class=3D"preview-legend-item">
+            <span class=3D"preview-badge">[1]</span>
+            <strong>Top Navigation</strong>
+            <div class=3D"muted" style=3D"margin-top: 4px;">Pending decisio=
+n (pending)</div>
+          </li>
+       =20
+          <li class=3D"preview-legend-item">
+            <span class=3D"preview-badge">[2]</span>
+            <strong>Left Panel</strong>
+            <div class=3D"muted" style=3D"margin-top: 4px;">Pending decisio=
+n (pending)</div>
+          </li>
+       =20
+          <li class=3D"preview-legend-item">
+            <span class=3D"preview-badge">[3]</span>
+            <strong>Main Workspace</strong>
+            <div class=3D"muted" style=3D"margin-top: 4px;">Pending decisio=
+n (pending)</div>
+          </li>
+       =20
+          <li class=3D"preview-legend-item">
+            <span class=3D"preview-badge">[4]</span>
+            <strong>Right Panel</strong>
+            <div class=3D"muted" style=3D"margin-top: 4px;">Pending decisio=
+n (pending)</div>
+          </li>
+       =20
+          <li class=3D"preview-legend-item">
+            <span class=3D"preview-badge">[5]</span>
+            <strong>Footer and Secondary</strong>
+            <div class=3D"muted" style=3D"margin-top: 4px;">Pending decisio=
+n (pending)</div>
+          </li>
+        </ul>
+          <p class=3D"muted" style=3D"margin:0;">=EB=B2=88=ED=98=B8=EB=A1=
+=9C =ED=94=BC=EB=93=9C=EB=B0=B1 =EC=A3=BC=EC=84=B8=EC=9A=94. =EC=98=88: [3]=
+ =EB=A9=94=EC=9D=B8 =EC=98=81=EC=97=AD =ED=8F=AD=EC=9D=84 =EB=8D=94 =EB=84=
+=93=ED=9E=88=EA=B8=B0.</p>
+        </section>
+     =20
+           =20
+        <section class=3D"question-wrap" data-question-key=3D"sidebar-struc=
+ture">
+          <div class=3D"question-header">
+            <h1 class=3D"question-label">Activity Bar =EC=82=AC=EC=9D=B4=EB=
+=93=9C=EB=B0=94 =EA=B5=AC=EC=84=B1</h1>
+            <button class=3D"toggle-mode-btn" data-action=3D"toggle-select-=
+mode" data-question-id=3D"sidebar-structure" title=3D"Switch between single=
+ and multiple selection">Single =E2=86=92 Multi</button>
+          </div>
+          <p class=3D"question-description">RisuAI Workbench =EC=A0=84=EC=
+=9A=A9 Activity Bar =EC=95=84=EC=9D=B4=EC=BD=98=EC=9D=84 =ED=81=B4=EB=A6=AD=
+=ED=96=88=EC=9D=84 =EB=95=8C =EB=82=98=ED=83=80=EB=82=98=EB=8A=94 =EC=82=AC=
+=EC=9D=B4=EB=93=9C=EB=B0=94=EC=9D=98 =EC=8B=9C=EA=B0=81=EC=A0=81 =EA=B5=AC=
+=EC=A1=B0=EB=A5=BC =EC=84=A0=ED=83=9D=ED=95=98=EC=84=B8=EC=9A=94.</p>
+         =20
+        <div class=3D"choices">
+         =20
+              <button class=3D"choice selected" data-action=3D"select-singl=
+e" data-value=3D"collapsible-sections" type=3D"button">
+                <span class=3D"choice-indicator"></span>
+                <span>
+                  <span class=3D"choice-title">1. =EC=A0=91=EC=9D=B4=EC=8B=
+=9D =EC=84=B9=EC=85=98</span>
+                  <span class=3D"choice-description">Character Explorer, Lo=
+rebooks, Scripts, Pipeline =EB=93=B1=EC=9D=B4 =EA=B0=81=EA=B0=81 =EC=A0=91=
+=EC=9D=84 =EC=88=98 =EC=9E=88=EB=8A=94 =EC=84=B9=EC=85=98=EC=9C=BC=EB=A1=9C=
+ =EC=84=B8=EB=A1=9C =EB=82=98=EC=97=B4 (VSCode =EA=B8=B0=EB=B3=B8 Explorer=
+=EC=99=80 =EC=9C=A0=EC=82=AC)</span>
+                </span>
+              </button>
+           =20
+              <button class=3D"choice " data-action=3D"select-single" data-=
+value=3D"tabbed-views" type=3D"button">
+                <span class=3D"choice-indicator"></span>
+                <span>
+                  <span class=3D"choice-title">2. =ED=83=AD =EC=A0=84=ED=99=
+=98 =EB=B7=B0</span>
+                  <span class=3D"choice-description">=EC=82=AC=EC=9D=B4=EB=
+=93=9C=EB=B0=94 =EC=83=81=EB=8B=A8=EC=97=90 =ED=83=AD(=EC=95=84=EC=9D=B4=EC=
+=BD=98)=EC=9D=B4 =EC=9E=88=EC=96=B4 Explorer / Pipeline / Diagnostics =EB=
+=93=B1=EC=9D=84 =EC=A0=84=ED=99=98. =ED=95=9C =EB=B2=88=EC=97=90 =ED=95=98=
+=EB=82=98=EC=9D=98 =EB=B7=B0=EB=A7=8C =ED=91=9C=EC=8B=9C</span>
+                </span>
+              </button>
+           =20
+              <button class=3D"choice " data-action=3D"select-single" data-=
+value=3D"tree-with-toolbar" type=3D"button">
+                <span class=3D"choice-indicator"></span>
+                <span>
+                  <span class=3D"choice-title">3. =EB=8B=A8=EC=9D=BC =ED=8A=
+=B8=EB=A6=AC + =EC=83=81=EB=8B=A8 =ED=88=B4=EB=B0=94</span>
+                  <span class=3D"choice-description">=ED=95=98=EB=82=98=EC=
+=9D=98 =ED=86=B5=ED=95=A9 =ED=8A=B8=EB=A6=AC=EB=B7=B0=EB=A1=9C =EC=A0=84=EC=
+=B2=B4 =ED=94=84=EB=A1=9C=EC=A0=9D=ED=8A=B8 =EA=B5=AC=EC=A1=B0=EB=A5=BC =EB=
+=B3=B4=EC=97=AC=EC=A3=BC=EA=B3=A0, =EC=83=81=EB=8B=A8 =ED=88=B4=EB=B0=94=EC=
+=97=90=EC=84=9C =ED=95=84=ED=84=B0/=EC=95=A1=EC=85=98 =EB=B2=84=ED=8A=BC =
+=EC=A0=9C=EA=B3=B5</span>
+                </span>
+              </button>
+           =20
+          <label class=3D"choice " style=3D"cursor: text;">
+            <span class=3D"choice-indicator"></span>
+            <div style=3D"flex: 1; display: flex; flex-direction: column; g=
+ap: 4px;">
+              <span class=3D"choice-title">=EC=A7=81=EC=A0=91 =EC=9E=85=EB=
+=A0=A5</span>
+              <input type=3D"text" class=3D"field" data-action=3D"input-cus=
+tom-single" value=3D"" placeholder=3D"Type your custom answer..." style=3D"=
+margin-top: 4px; padding: 6px 10px; font-size: 13px;">
+            </div>
+          </label>
+        </div>
+     =20
+          <div class=3D"actions">
+            <button class=3D"btn btn-add" data-action=3D"open-refine-modal"=
+>Refine Options</button>
+            <div>
+              <button class=3D"btn" data-action=3D"back-prev" disabled=3D""=
+>Back</button>
+              <button class=3D"btn btn-primary" data-action=3D"submit-answe=
+r">Next</button>
+            </div>
+          </div>
+        </section>
+     =20
+          </main>
+          <aside class=3D"info panel">
+           =20
+            <p class=3D"section-title">Progress</p>
+            <div class=3D"progress-bar"><div class=3D"progress-fill" style=
+=3D"width: 0%;"></div></div>
+            <div class=3D"progress-text">0/6 (0%)</div>
+            <p class=3D"section-title">Decision History</p>
+            <p class=3D"empty-note">No decisions yet.</p>
+          </aside>
+        </div>
+       =20
+      </div>
+  <div id=3D"toast-wrap" class=3D"toast-wrap" aria-live=3D"polite"></div>
+ =20
+
+
+</body><whale-quicksearch translate=3D"no" style=3D"visibility: visible;"><=
+template shadowmode=3D"closed"><div class=3D"anchor" style=3D"top: 220px !i=
+mportant; left: 509px !important;"></div><div class=3D"quicksearch forward"=
+ data-version=3D"bde00b7"></div></template></whale-quicksearch></html>
+------MultipartBoundary--bujYSk4HQdktffXBB75DTWzw7UQkQNsUK8kCEEiqie----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: chrome-extension://pdjhokodhiaaphbgopajhalchjhmflae/modal.css
+
+@charset "utf-8";
+
+@font-face { font-family: Paperlogy-4Regular; src: url("chrome-extension://=
+pdjhokodhiaaphbgopajhalchjhmflae/fonts/Paperlogy-4Regular.woff2") format("w=
+off2"); font-weight: normal; font-style: normal; }
+
+@font-face { font-family: PretendardVariable; src: url("chrome-extension://=
+pdjhokodhiaaphbgopajhalchjhmflae/fonts/PretendardVariable.woff2") format("w=
+off2"); }
+
+:root { --pv-bg-color: #f7f9fc; --pv-modal-bg: #ffffff; --pv-text-color: #2=
+c3e50; --pv-text-muted: #7f8c9a; --pv-border-color: #e1e8ed; --pv-border-li=
+ght: #f1f3f5; --pv-primary-color: #3498db; --pv-primary-hover: #2980b9; --p=
+v-textarea-bg: #fdfdfe; --pv-textarea-border: #d8dde2; --pv-button-bg: #eaf=
+0f4; --pv-button-hover-bg: #dce4e9; --pv-button-text: #34495e; --pv-success=
+-bg: #e8f5e9; --pv-success-border: #c8e6c9; --pv-success-text: #2e7d32; --p=
+v-fail-bg: #ffebee; --pv-fail-border: #ffcdd2; --pv-fail-text: #c62828; --p=
+v-shadow-color: rgba(52, 73, 94, 0.1); --pv-spinner-color: #ffffff; --pv-fo=
+oter-height: 60px; }
+
+#promptViewerModal_pvExt { position: fixed; left: 50%; top: 50%; transform:=
+ translate(-50%, -50%); background-color: var(--pv-modal-bg); padding: 0px;=
+ border: 1px solid var(--pv-border-color); border-radius: 12px; box-shadow:=
+ 0 10px 30px var(--pv-shadow-color); z-index: 2147483647; width: 800px; min=
+-width: 320px; max-width: 92vw; max-height: 90vh; font-family: PretendardVa=
+riable, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, O=
+xygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; font-s=
+ize: 14.5px; color: var(--pv-text-color); display: flex; flex-direction: co=
+lumn; line-height: 1.65; }
+
+#promptViewerModal_pvExt ::-webkit-scrollbar { width: 9px; height: 9px; }
+
+#promptViewerModal_pvExt ::-webkit-scrollbar-track { background: rgb(248, 2=
+49, 250); border-radius: 10px; }
+
+#promptViewerModal_pvExt ::-webkit-scrollbar-thumb { background: rgb(206, 2=
+12, 218); border-radius: 10px; }
+
+#promptViewerModal_pvExt ::-webkit-scrollbar-thumb:hover { background: rgb(=
+173, 181, 189); }
+
+#promptViewerModal_pvExt .pv-modal-header { display: flex; justify-content:=
+ space-between; align-items: center; border-bottom: 1px solid var(--pv-bord=
+er-light); padding: 18px 28px; margin-bottom: 0px; flex-shrink: 0; gap: 10p=
+x; height: 68px; box-sizing: border-box; }
+
+#promptViewerModal_pvExt .pv-modal-title { margin-top: 0px; margin-bottom: =
+0px; font-size: 20px; font-weight: 500; line-height: 1.4; font-family: Pape=
+rlogy-4Regular, PretendardVariable, sans-serif; flex-grow: 1; min-width: 0p=
+x; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+#promptViewerModal_pvExt .pv-modal-title .pv-type-identifier { font-weight:=
+ 400; color: var(--pv-text-muted); font-size: 0.88em; margin-left: 5px; fon=
+t-family: PretendardVariable, sans-serif; }
+
+.pv-lang-toggle-switch-pill { display: flex; align-items: stretch; backgrou=
+nd-color: var(--pv-button-bg); border-radius: 20px; padding: 3px; border: 1=
+px solid var(--pv-border-color); flex-shrink: 0; min-width: 90px; height: 3=
+8px; box-sizing: border-box; }
+
+.pv-lang-toggle-switch-pill label { padding: 5px 12px; cursor: pointer; bor=
+der-radius: 16px; transition: background-color 0.25s, color 0.25s; font-siz=
+e: 12.5px; font-weight: 500; color: var(--pv-text-muted); user-select: none=
+; display: flex; align-items: center; justify-content: center; flex-grow: 1=
+; height: 100%; box-sizing: border-box; font-family: PretendardVariable, sa=
+ns-serif; line-height: normal; }
+
+.pv-lang-toggle-switch-pill label span { display: inline-block; line-height=
+: 1; }
+
+.pv-lang-toggle-switch-pill input[type=3D"radio"] { display: none; }
+
+.pv-lang-toggle-switch-pill label:has(input[type=3D"radio"]:checked) { back=
+ground-color: var(--pv-primary-color); color: white; box-shadow: rgba(0, 0,=
+ 0, 0.08) 0px 2px 5px; }
+
+.pv-lang-toggle-switch-pill label.active { background-color: var(--pv-prima=
+ry-color); color: white; box-shadow: rgba(0, 0, 0, 0.08) 0px 2px 5px; }
+
+#promptViewerModal_pvExt .pv-modal-close-button { cursor: pointer; border: =
+none; background: transparent; font-size: 24px; padding: 0px 6px; line-heig=
+ht: 1; color: rgb(176, 190, 197); transition: color 0.2s; flex-shrink: 0; }
+
+#promptViewerModal_pvExt .pv-modal-close-button:hover { color: var(--pv-tex=
+t-color); }
+
+#promptViewerModal_pvExt .pv-prompts-container { display: flex; gap: 20px; =
+padding: 20px 28px 0px; flex-shrink: 0; }
+
+#promptViewerModal_pvExt .pv-prompt-column { flex: 1 1 0%; display: flex; f=
+lex-direction: column; min-width: 0px; }
+
+#promptViewerModal_pvExt .pv-prompt-textarea, #promptViewerModal_pvExt .pv-=
+nai-prompt-formatted { flex-grow: 1; max-height: 400px; width: calc(100% - =
+20px); padding: 12px; border: 1px solid var(--pv-textarea-border); font-siz=
+e: 13.8px; font-family: PretendardVariable, monospace, "Courier New", Couri=
+er; border-radius: 8px; background-color: var(--pv-textarea-bg); line-heigh=
+t: 1.7; resize: vertical; overflow-y: auto; color: var(--pv-text-color); mi=
+n-height: 220px !important; }
+
+#promptViewerModal_pvExt .pv-prompt-textarea { white-space: pre-wrap; word-=
+break: break-all; }
+
+#promptViewerModal_pvExt .pv-nai-prompt-formatted { white-space: normal; wo=
+rd-break: break-word; }
+
+#promptViewerModal_pvExt .pv-nai-prompt-formatted strong { font-weight: 600=
+; color: var(--pv-primary-color); display: inline-block; margin-top: 5px; m=
+argin-bottom: 3px; font-family: inherit; }
+
+#promptViewerModal_pvExt .pv-copy-button-container { text-align: right; mar=
+gin-top: 12px; flex-shrink: 0; }
+
+#promptViewerModal_pvExt .pv-copy-button { padding: 8px 16px; font-size: 12=
+.8px; font-weight: 500; cursor: pointer; border: 1px solid var(--pv-border-=
+color); background-color: var(--pv-button-bg); border-radius: 6px; min-widt=
+h: 90px; text-align: center; transition: background-color 0.2s, border-colo=
+r 0.2s, color 0.2s, transform 0.1s; color: var(--pv-button-text); font-fami=
+ly: PretendardVariable, sans-serif; }
+
+#promptViewerModal_pvExt .pv-copy-button:hover { background-color: var(--pv=
+-button-hover-bg); border-color: rgb(205, 211, 216); }
+
+#promptViewerModal_pvExt .pv-copy-button:active { transform: translateY(1px=
+); }
+
+#promptViewerModal_pvExt .pv-copy-button.copied { background-color: var(--p=
+v-success-bg) !important; border-color: var(--pv-success-border) !important=
+; color: var(--pv-success-text) !important; }
+
+#promptViewerModal_pvExt .pv-copy-button.failed { background-color: var(--p=
+v-fail-bg) !important; border-color: var(--pv-fail-border) !important; colo=
+r: var(--pv-fail-text) !important; }
+
+#promptViewerModal_pvExt .pv-content-scrollable { overflow-y: auto; flex-gr=
+ow: 1; padding: 20px 28px; }
+
+#promptViewerModal_pvExt .pv-section { margin-bottom: 28px; }
+
+#promptViewerModal_pvExt .pv-section-title { font-size: 17px; font-weight: =
+500; margin-top: 18px; margin-bottom: 4px; border-bottom: none; padding-bot=
+tom: 8px; padding-left: 5px; box-sizing: border-box; font-family: Paperlogy=
+-4Regular, PretendardVariable, sans-serif; }
+
+#promptViewerModal_pvExt .pv-prompt-column .pv-section-title { margin-top: =
+0px; }
+
+#promptViewerModal_pvExt .pv-content-scrollable > div > .pv-section:first-c=
+hild > .pv-section-title, #promptViewerModal_pvExt .pv-content-scrollable >=
+ .pv-section:first-child > .pv-section-title { margin-top: 0px; }
+
+#promptViewerModal_pvExt .pv-textarea:not(.pv-prompt-textarea) { width: cal=
+c(100% - 20px); min-height: 110px; max-height: 320px; padding: 12px; border=
+: 1px solid var(--pv-textarea-border); font-size: 13.2px; font-family: Pret=
+endardVariable, monospace, "Courier New", Courier; white-space: pre-wrap; w=
+ord-break: break-all; border-radius: 8px; background-color: rgb(255, 255, 2=
+55); line-height: 1.6; resize: vertical; color: rgb(69, 90, 100); }
+
+#promptViewerModal_pvExt .pv-textarea-raw { min-height: 130px !important; }
+
+#promptViewerModal_pvExt .pv-settings-table { width: 100%; border-collapse:=
+ collapse; font-size: 13.8px; font-family: PretendardVariable, sans-serif; =
+}
+
+.pv-settings-table-container { border: 1px solid var(--pv-border-light); bo=
+rder-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+
+#promptViewerModal_pvExt .pv-settings-table th, #promptViewerModal_pvExt .p=
+v-settings-table td { padding: 9px 12px; border-bottom: 1px solid var(--pv-=
+border-light); text-align: left; vertical-align: top; }
+
+.pv-settings-table-container .pv-settings-table { border: none; }
+
+.pv-settings-table-container .pv-settings-table th, .pv-settings-table-cont=
+ainer .pv-settings-table td { border-left: none; border-right: none; border=
+-top: none; }
+
+.pv-settings-table-container .pv-settings-table tr:last-child th, .pv-setti=
+ngs-table-container .pv-settings-table tr:last-child td { border-bottom: no=
+ne; }
+
+#promptViewerModal_pvExt .pv-settings-table th { font-weight: 500; backgrou=
+nd-color: var(--pv-bg-color); width: 35%; color: var(--pv-text-color); }
+
+#promptViewerModal_pvExt .pv-settings-table td { word-break: break-all; col=
+or: var(--pv-text-muted); }
+
+#promptViewerModal_pvExt .pv-modal-footer { flex-shrink: 0; padding: 15px 2=
+8px; border-top: 1px solid var(--pv-border-color); background-color: var(--=
+pv-modal-bg); }
+
+#promptViewerModal_pvExt .pv-toggle-button { display: block; width: 100%; p=
+adding: 11px 14px; margin-top: 0px; cursor: pointer; border: 1px solid var(=
+--pv-border-color); background-color: var(--pv-button-bg); border-radius: 6=
+px; text-align: center; font-size: 14.2px; font-weight: 500; color: var(--p=
+v-button-text); transition: background-color 0.2s; font-family: PretendardV=
+ariable, sans-serif; }
+
+#promptViewerModal_pvExt .pv-toggle-button:hover { background-color: var(--=
+pv-button-hover-bg); }
+
+#promptViewerModal_pvExt .pv-error-message { color: var(--pv-fail-text); ma=
+rgin-top: 0px; font-size: 14.2px; padding: 12px 15px; background-color: var=
+(--pv-fail-bg); border: 1px solid var(--pv-fail-border); border-radius: 6px=
+; word-break: break-word; font-family: PretendardVariable, sans-serif; }
+
+#promptViewerSpinnerHost_pvExt { position: fixed; left: 50%; top: 50%; tran=
+sform: translate(-50%, -50%); z-index: 2147483647; display: flex; justify-c=
+ontent: center; align-items: center; }
+
+.pv-spinner-dots-wrapper { display: flex; align-items: center; position: re=
+lative; width: 50px; height: 35px; }
+
+.pv-spinner-dot { width: 10px; height: 10px; background-color: var(--pv-spi=
+nner-color, #ffffff); border-radius: 50%; position: absolute; top: 50%; lef=
+t: 50%; }
+
+.pv-spinner-dot.dot1 { animation: 1s linear 0s infinite alternate none runn=
+ing pv-spinner-dot1-anim; }
+
+.pv-spinner-dot.dot2 { animation: 1s linear 0s infinite alternate none runn=
+ing pv-spinner-dot2-anim; }
+
+.pv-spinner-dot.dot3 { animation: 1s linear 0s infinite alternate none runn=
+ing pv-spinner-dot3-anim; }
+
+@keyframes pv-spinner-dot1-anim {=20
+  0%, 100% { transform: translate(-20px, -15px); }
+  50% { transform: translate(-20px, 5px); }
+}
+
+@keyframes pv-spinner-dot2-anim {=20
+  0%, 100% { transform: translate(-5px, 5px); }
+  50% { transform: translate(-5px, -15px); }
+}
+
+@keyframes pv-spinner-dot3-anim {=20
+  0%, 100% { transform: translate(10px, -15px); }
+  50% { transform: translate(10px, 5px); }
+}
+------MultipartBoundary--bujYSk4HQdktffXBB75DTWzw7UQkQNsUK8kCEEiqie----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-871ac016-d956-4b84-9940-bd9004dfdad5@mhtml.blink
+
+@charset "utf-8";
+
+:root { --bg-primary: #0d1117; --bg-secondary: #161b22; --bg-tertiary: #212=
+62d; --border: #30363d; --text-primary: #e6edf3; --text-secondary: #8b949e;=
+ --accent: #58a6ff; --accent-hover: #79c0ff; --success: #3fb950; --warning:=
+ #d29922; --danger: #f85149; --font-mono: "JetBrains Mono", "Fira Code", mo=
+nospace; --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-s=
+erif; --radius: 8px; --shadow: 0 12px 36px rgba(0, 0, 0, 0.35); --transitio=
+n-fast: 160ms ease; --transition-base: 260ms ease; }
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0px; min-height: 100%; background: radial-gradient(cir=
+cle at 20% -10%, #1b2330 0%, #0d1117 45%), var(--bg-primary); color: var(--=
+text-primary); font-family: var(--font-sans); }
+
+body { min-width: 320px; }
+
+.app { min-height: 100vh; padding: 18px; display: grid; place-items: center=
+; }
+
+.workbench { width: min(1400px, 100%); border: 1px solid var(--border); bor=
+der-radius: calc(var(--radius) + 4px); background: linear-gradient(170deg, =
+rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0)), var(--bg-secondary); bo=
+x-shadow: var(--shadow); display: grid; grid-template-columns: 280px 1fr 30=
+0px; overflow: hidden; }
+
+.panel { min-height: 78vh; max-height: 86vh; overflow: auto; }
+
+.sidebar, .info { background: rgba(0, 0, 0, 0.18); border-right: 1px solid =
+var(--border); padding: 18px; }
+
+.info { border-right: 0px; border-left: 1px solid var(--border); }
+
+.main { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.section-title { margin: 0px 0px 12px; color: var(--text-secondary); text-t=
+ransform: uppercase; letter-spacing: 0.08em; font-size: 12px; font-weight: =
+600; }
+
+.steps { display: grid; gap: 8px; }
+
+.step { border-top-color: ; border-top-style: ; border-top-width: ; border-=
+right-color: ; border-right-style: ; border-right-width: ; border-bottom-co=
+lor: ; border-bottom-style: ; border-bottom-width: ; border-image-source: ;=
+ border-image-slice: ; border-image-width: ; border-image-outset: ; border-=
+image-repeat: ; border-left: 3px solid transparent; border-radius: var(--ra=
+dius); background: var(--bg-secondary); color: var(--text-primary); width: =
+100%; text-align: left; padding: 10px 10px 10px 12px; cursor: default; tran=
+sition: border-color var(--transition-fast), background var(--transition-fa=
+st), transform var(--transition-fast); display: grid; gap: 4px; }
+
+.step.step-clickable { cursor: pointer; }
+
+.step.step-clickable:hover { transform: translateY(-1px); border-color: rgb=
+(58, 69, 84); background: var(--bg-tertiary); }
+
+.step.is-active { border-left-color: var(--accent); background: rgb(16, 27,=
+ 44); }
+
+.step-row { display: flex; justify-content: space-between; gap: 8px; align-=
+items: center; font-size: 13px; }
+
+.step-status { color: var(--text-secondary); font-size: 12px; font-family: =
+var(--font-mono); }
+
+.step-label { color: var(--text-secondary); font-size: 12px; line-height: 1=
+.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.question-wrap { border: 1px solid var(--border); border-radius: calc(var(-=
+-radius) + 2px); background: var(--bg-secondary); padding: 20px; min-height=
+: 360px; display: flex; flex-direction: column; gap: 16px; animation: quest=
+ion-in var(--transition-base); }
+
+@keyframes question-in {=20
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+
+.question-label { margin: 0px; font-size: 22px; line-height: 1.3; }
+
+.question-description { margin: 0px; color: var(--text-secondary); line-hei=
+ght: 1.6; font-size: 14px; }
+
+.choices { display: grid; gap: 10px; }
+
+.choice { width: 100%; border: 1px solid var(--border); border-radius: var(=
+--radius); background: var(--bg-tertiary); color: var(--text-primary); text=
+-align: left; padding: 12px; display: flex; align-items: flex-start; gap: 1=
+2px; cursor: pointer; transition: border-color var(--transition-fast), tran=
+sform var(--transition-fast), background var(--transition-fast); }
+
+.choice:hover { border-color: rgb(74, 90, 112); transform: translateY(-1px)=
+; }
+
+.choice.selected { border-color: var(--accent); background: rgba(88, 166, 2=
+55, 0.1); }
+
+.choice-indicator { width: 18px; height: 18px; border: 2px solid rgb(112, 1=
+29, 153); border-radius: 99px; margin-top: 1px; display: inline-flex; align=
+-items: center; justify-content: center; flex: 0 0 auto; transition: border=
+-color var(--transition-fast), background var(--transition-fast); }
+
+.choice-indicator.checkbox { border-radius: 4px; }
+
+.choice.selected .choice-indicator { border-color: var(--accent); backgroun=
+d: var(--accent); }
+
+.choice-indicator::after { content: ""; width: 7px; height: 7px; border-rad=
+ius: 99px; background: transparent; }
+
+.choice.selected .choice-indicator::after { background: rgb(11, 18, 32); }
+
+.choice-indicator.checkbox::after { width: 8px; height: 8px; border-radius:=
+ 2px; }
+
+.choice-title { font-size: 14px; line-height: 1.5; font-weight: 500; }
+
+.choice-description { font-size: 12px; color: var(--text-secondary); margin=
+-top: 3px; line-height: 1.4; }
+
+.field, .textarea, .number-field, .select { width: 100%; border: 1px solid =
+var(--border); border-radius: var(--radius); background: var(--bg-tertiary)=
+; color: var(--text-primary); padding: 10px 12px; font-size: 14px; font-fam=
+ily: var(--font-sans); transition: border-color var(--transition-fast), box=
+-shadow var(--transition-fast); }
+
+.field:focus, .textarea:focus, .number-field:focus, .select:focus { outline=
+: none; border-color: var(--accent); box-shadow: rgba(88, 166, 255, 0.2) 0p=
+x 0px 0px 3px; }
+
+.textarea { min-height: 140px; resize: vertical; line-height: 1.55; }
+
+.slider-row { display: grid; gap: 10px; border: 1px solid var(--border); bo=
+rder-radius: var(--radius); background: var(--bg-tertiary); padding: 16px; =
+}
+
+.slider-meta { display: flex; justify-content: space-between; color: var(--=
+text-secondary); font-family: var(--font-mono); font-size: 12px; }
+
+.slider-value { color: var(--accent); font-size: 24px; font-family: var(--f=
+ont-mono); font-weight: 600; }
+
+.range { width: 100%; accent-color: var(--accent); }
+
+.toggle-card { border: 1px solid var(--border); border-radius: var(--radius=
+); background: var(--bg-tertiary); padding: 14px; display: flex; justify-co=
+ntent: space-between; align-items: center; gap: 12px; }
+
+.toggle-switch { width: 54px; height: 30px; border-radius: 99px; border: 1p=
+x solid rgb(79, 89, 99); background: rgb(38, 49, 66); position: relative; c=
+ursor: pointer; transition: background var(--transition-fast), border-color=
+ var(--transition-fast); }
+
+.toggle-switch::after { content: ""; position: absolute; top: 2px; left: 2p=
+x; width: 24px; height: 24px; border-radius: 50%; background: rgb(255, 255,=
+ 255); transition: transform var(--transition-fast); }
+
+.toggle-switch.is-on { border-color: var(--accent); background: rgba(88, 16=
+6, 255, 0.8); }
+
+.toggle-switch.is-on::after { transform: translateX(24px); }
+
+.actions { display: flex; gap: 10px; justify-content: space-between; align-=
+items: center; margin-top: auto; border-top: 1px solid var(--border); paddi=
+ng-top: 14px; flex-wrap: wrap; }
+
+.btn { border: 1px solid var(--border); background: var(--bg-tertiary); col=
+or: var(--text-primary); border-radius: var(--radius); padding: 10px 14px; =
+font-size: 13px; cursor: pointer; transition: background var(--transition-f=
+ast), border-color var(--transition-fast), transform var(--transition-fast)=
+; }
+
+.btn:hover:not(:disabled) { background: rgb(39, 48, 59); border-color: rgb(=
+77, 90, 107); transform: translateY(-1px); }
+
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-primary { border-color: var(--accent); background: rgba(88, 166, 255, =
+0.2); }
+
+.btn-primary:hover:not(:disabled) { border-color: var(--accent-hover); back=
+ground: rgba(121, 192, 255, 0.25); }
+
+.btn-danger { border-color: rgb(143, 60, 56); color: rgb(255, 211, 207); ba=
+ckground: rgba(248, 81, 73, 0.12); }
+
+.btn-add { margin-right: auto; }
+
+.progress-bar { width: 100%; height: 8px; border-radius: 99px; background: =
+rgb(37, 45, 53); overflow: hidden; border: 1px solid var(--border); margin-=
+bottom: 8px; }
+
+.progress-fill { height: 100%; background: linear-gradient(90deg, #2d83dd 0=
+%, var(--accent) 100%); width: 0px; transition: width var(--transition-base=
+); }
+
+.progress-text { color: var(--text-secondary); font-family: var(--font-mono=
+); font-size: 12px; margin-bottom: 24px; }
+
+.history { display: grid; gap: 8px; }
+
+.preview-box { border: 1px solid var(--border); border-radius: var(--radius=
+); background: var(--bg-secondary); padding: 10px; margin-bottom: 18px; dis=
+play: grid; gap: 10px; }
+
+.preview-diagram { margin: 0px; border: 1px solid var(--border); border-rad=
+ius: 6px; background: rgb(12, 17, 24); padding: 20px; color: rgb(201, 213, =
+225); font-family: var(--font-mono); font-size: 15px; line-height: 1.35; ov=
+erflow: auto; white-space: pre; display: flex; justify-content: center; }
+
+.preview-legend { margin: 0px; padding: 0px; list-style: none; display: gri=
+d; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+.preview-legend-item { border: 1px solid var(--border); border-radius: 6px;=
+ padding: 8px; background: var(--bg-tertiary); font-size: 12px; line-height=
+: 1.4; }
+
+.preview-badge { color: var(--accent); font-family: var(--font-mono); font-=
+weight: 600; margin-right: 6px; }
+
+.history-item { border: 1px solid var(--border); border-radius: var(--radiu=
+s); padding: 10px; background: var(--bg-secondary); font-size: 12px; line-h=
+eight: 1.45; }
+
+.history-question { color: var(--text-secondary); margin-bottom: 4px; }
+
+.history-answer { color: var(--text-primary); font-family: var(--font-mono)=
+; }
+
+.empty-note { color: var(--text-secondary); font-size: 13px; line-height: 1=
+.5; padding: 8px; border: 1px dashed var(--border); border-radius: var(--ra=
+dius); }
+
+.toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 1400; displ=
+ay: grid; gap: 8px; pointer-events: none; }
+
+.toast { border-radius: var(--radius); background: rgba(248, 81, 73, 0.14);=
+ border: 1px solid rgba(248, 81, 73, 0.5); color: rgb(255, 217, 214); paddi=
+ng: 10px 12px; min-width: 250px; box-shadow: var(--shadow); animation: 180m=
+s ease 0s 1 normal none running toast-in; }
+
+@keyframes toast-in {=20
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+
+.modal { position: fixed; inset: 0px; background: rgba(0, 0, 0, 0.58); z-in=
+dex: 1300; display: grid; place-items: center; padding: 16px; }
+
+.modal-panel { width: min(760px, 100%); background: var(--bg-secondary); bo=
+rder: 1px solid var(--border); border-radius: calc(var(--radius) + 2px); bo=
+x-shadow: var(--shadow); padding: 20px; display: grid; gap: 12px; }
+
+.modal-title { margin: 0px; font-size: 18px; }
+
+.modal-grid { display: grid; grid-template-columns: 1fr 220px; gap: 10px; }
+
+.modal-row { display: grid; gap: 6px; }
+
+.field-label { color: var(--text-secondary); font-size: 12px; text-transfor=
+m: uppercase; letter-spacing: 0.06em; }
+
+.option-row { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px;=
+ align-items: center; margin-bottom: 8px; }
+
+.slider-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8=
+px; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; border=
+-top: 1px solid var(--border); padding-top: 12px; }
+
+.skeleton { border: 1px solid var(--border); border-radius: var(--radius); =
+height: 16px; background: linear-gradient(90deg, rgb(34, 43, 52) 20%, rgb(4=
+5, 55, 66) 38%, rgb(34, 43, 52) 60%) 0% 0% / 220% 100%; animation: 1.2s lin=
+ear 0s infinite normal none running pulse; }
+
+@keyframes pulse {=20
+  0% { background-position: 200% 0px; }
+  100% { background-position: -200% 0px; }
+}
+
+.complete { border: 1px solid var(--border); border-radius: var(--radius); =
+background: var(--bg-secondary); padding: 20px; display: grid; gap: 14px; }
+
+.complete-list { margin: 0px; padding: 0px; list-style: none; display: grid=
+; gap: 8px; }
+
+.complete-item { border: 1px solid var(--border); border-radius: var(--radi=
+us); padding: 10px; background: var(--bg-tertiary); display: grid; gap: 4px=
+; }
+
+.complete-label { color: var(--text-secondary); font-size: 12px; }
+
+.complete-value { font-family: var(--font-mono); font-size: 13px; }
+
+.complete-final { border: 1px solid rgb(47, 92, 56); background: rgba(63, 1=
+85, 80, 0.12); color: rgb(189, 233, 196); padding: 10px 12px; border-radius=
+: var(--radius); font-size: 13px; }
+
+.muted { color: var(--text-secondary); font-size: 12px; }
+
+.question-header { display: flex; justify-content: space-between; align-ite=
+ms: flex-start; gap: 12px; }
+
+.toggle-mode-btn { border: 1px solid var(--border); background: var(--bg-te=
+rtiary); color: var(--text-secondary); border-radius: var(--radius); paddin=
+g: 4px 10px; font-size: 11px; font-family: var(--font-mono); cursor: pointe=
+r; white-space: nowrap; flex: 0 0 auto; transition: border-color var(--tran=
+sition-fast), color var(--transition-fast), background var(--transition-fas=
+t); }
+
+.toggle-mode-btn:hover { border-color: var(--accent); color: var(--text-pri=
+mary); background: rgba(88, 166, 255, 0.08); }
+
+@media (max-width: 1200px) {
+  .workbench { grid-template-columns: 240px 1fr 280px; }
+}
+
+@media (max-width: 900px) {
+  .app { padding: 10px; }
+  .workbench { border-radius: var(--radius); grid-template-columns: 1fr; }
+  .panel { min-height: auto; max-height: none; }
+  .sidebar, .info { border-right: 0px; border-left: 0px; }
+  .sidebar { border-bottom: 1px solid var(--border); }
+  .info { border-top: 1px solid var(--border); }
+  .modal-grid { grid-template-columns: 1fr; }
+}
+------MultipartBoundary--bujYSk4HQdktffXBB75DTWzw7UQkQNsUK8kCEEiqie------

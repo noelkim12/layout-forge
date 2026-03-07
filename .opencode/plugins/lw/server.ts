@@ -2,11 +2,31 @@ import type { AnswerValue, QuestionDefinition, WorkbenchSession } from "./types"
 import { getApplicableQuestions, getCurrentQuestion, getProgress } from "./graph"
 import { reduce } from "./reducer"
 import { saveSession } from "./store"
+import { buildAsciiPreview } from "./ascii"
+
+interface BunServerInstance {
+  port: number
+  stop: () => void
+}
+
+interface BunServeOptions {
+  hostname: string
+  port: number
+  fetch: (request: Request) => Promise<Response>
+}
+
+declare const Bun: {
+  serve: (options: BunServeOptions) => BunServerInstance
+}
+
+export const WORKBENCH_SERVER_HOSTNAME = "127.0.0.1"
+export const DEFAULT_WORKBENCH_SERVER_PORT = 0
 
 export interface ServerConfig {
   session: WorkbenchSession
   baseDir: string
   uiHtml: string
+  port?: number
   onLog?: (msg: string) => void
 }
 
@@ -15,7 +35,8 @@ export interface WorkbenchServer {
   port: number
   token: string
   stop: () => void
-  waitForCompletion: () => Promise<WorkbenchSession>
+  /** Resolves when the user submits a round or requests refinement. Can be called multiple times. */
+  waitForRound: () => Promise<WorkbenchSession>
 }
 
 function buildSessionState(session: WorkbenchSession): {
@@ -23,12 +44,14 @@ function buildSessionState(session: WorkbenchSession): {
   currentQuestion: ReturnType<typeof getCurrentQuestion>
   applicableQuestions: ReturnType<typeof getApplicableQuestions>
   progress: ReturnType<typeof getProgress>
+  layoutPreview: ReturnType<typeof buildAsciiPreview>
 } {
   return {
     session,
     currentQuestion: getCurrentQuestion(session.questions, session.answers, session.currentIndex),
     applicableQuestions: getApplicableQuestions(session.questions, session.answers),
     progress: getProgress(session.questions, session.answers),
+    layoutPreview: buildAsciiPreview(session),
   }
 }
 
@@ -42,6 +65,7 @@ function forbiddenResponse(originHeaders: HeadersInit): Response {
 
 /**
  * Starts an ephemeral local HTTP server that serves the workbench SPA and session API.
+ * Supports multi-round flow: the server stays alive across multiple question rounds.
  */
 export async function startWorkbenchServer(
   config: ServerConfig,
@@ -49,24 +73,58 @@ export async function startWorkbenchServer(
 ): Promise<WorkbenchServer> {
   let currentSession = config.session
   const token = crypto.randomUUID()
-  let resolveCompletion: (value: WorkbenchSession) => void = () => undefined
-  let rejectCompletion: (reason?: unknown) => void = () => undefined
-  const completionPromise = new Promise<WorkbenchSession>((resolve, reject) => {
-    resolveCompletion = resolve
-    rejectCompletion = reject
-  })
+
+  // Round-based promise pattern: each waitForRound() creates a new promise
+  let roundResolve: ((value: WorkbenchSession) => void) | null = null
+  let roundReject: ((reason?: unknown) => void) | null = null
+
   const idleTimeoutMs = 30 * 60 * 1000
-  let completed = false
   let stopped = false
   let idleTimer: ReturnType<typeof setTimeout> | undefined
 
+  const resetIdleTimer = () => {
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer)
+    }
+
+    idleTimer = setTimeout(async () => {
+      try {
+        currentSession = reduce(currentSession, { type: "ABANDON" })
+        await saveSession(currentSession, config.baseDir)
+        roundResolve?.(currentSession)
+        roundResolve = null
+        roundReject = null
+        config.onLog?.(`Workbench session timed out: ${currentSession.id}`)
+      } catch (error) {
+        roundReject?.(error instanceof Error ? error : new Error(String(error)))
+        roundResolve = null
+        roundReject = null
+      } finally {
+        if (!stopped) {
+          stopped = true
+          server.stop()
+        }
+      }
+    }, idleTimeoutMs)
+  }
+
+  const stopServer = () => {
+    if (idleTimer !== undefined) {
+      clearTimeout(idleTimer)
+    }
+    if (!stopped) {
+      stopped = true
+      server.stop()
+    }
+  }
+
   const server = Bun.serve({
-    hostname: "127.0.0.1",
-    port: 0,
-    fetch: async (request): Promise<Response> => {
+    hostname: WORKBENCH_SERVER_HOSTNAME,
+    port: config.port ?? DEFAULT_WORKBENCH_SERVER_PORT,
+    fetch: async (request: Request): Promise<Response> => {
       const requestUrl = new URL(request.url)
       const origin = request.headers.get("origin")
-      const sameOrigin = `http://127.0.0.1:${server.port}`
+      const sameOrigin = `http://${WORKBENCH_SERVER_HOSTNAME}:${server.port}`
       const responseHeaders: HeadersInit = {
         "Access-Control-Allow-Origin": sameOrigin,
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -74,30 +132,7 @@ export async function startWorkbenchServer(
         Vary: "Origin",
       }
 
-      if (idleTimer !== undefined) {
-        clearTimeout(idleTimer)
-      }
-
-      idleTimer = setTimeout(async () => {
-        if (completed) {
-          return
-        }
-
-        try {
-          currentSession = reduce(currentSession, { type: "ABANDON" })
-          await saveSession(currentSession, config.baseDir)
-          completed = true
-          resolveCompletion(currentSession)
-          config.onLog?.(`Workbench session timed out: ${currentSession.id}`)
-        } catch (error) {
-          rejectCompletion(error instanceof Error ? error : new Error(String(error)))
-        } finally {
-          if (!stopped) {
-            stopped = true
-            server.stop()
-          }
-        }
-      }, idleTimeoutMs)
+      resetIdleTimer()
 
       if (request.method === "OPTIONS") {
         if (origin && origin !== sameOrigin) {
@@ -139,6 +174,7 @@ export async function startWorkbenchServer(
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
+        // User answers a single question (mid-round, does not resolve the round)
         if (request.method === "POST" && requestUrl.pathname === "/api/answer") {
           const body = (await request.json()) as { questionId: string; value: AnswerValue }
           currentSession = reduce(currentSession, {
@@ -164,20 +200,96 @@ export async function startWorkbenchServer(
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
+        if (request.method === "POST" && requestUrl.pathname === "/api/toggle-type") {
+          const body = (await request.json()) as { questionId: string }
+          currentSession = reduce(currentSession, { type: "TOGGLE_SELECT_MODE", questionId: body.questionId })
+          await saveSession(currentSession, config.baseDir)
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // LLM pushes new questions (resets answers, sets status to active)
+        if (request.method === "POST" && requestUrl.pathname === "/api/push-questions") {
+          const body = (await request.json()) as { questions: QuestionDefinition[] }
+          currentSession = reduce(currentSession, { type: "SET_QUESTIONS", questions: body.questions })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Questions pushed to workbench: ${body.questions.length} questions`)
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // LLM pushes a message to the browser (does not change status)
+        if (request.method === "POST" && requestUrl.pathname === "/api/push-message") {
+          const body = (await request.json()) as { content: string }
+          currentSession = reduce(currentSession, { type: "PUSH_MESSAGE", content: body.content })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Message pushed to workbench`)
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // User submits all answers for this round → status becomes "processing", round resolves
+        if (request.method === "POST" && requestUrl.pathname === "/api/submit-round") {
+          currentSession = reduce(currentSession, { type: "SUBMIT_ROUND" })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Round submitted: ${currentSession.id}`)
+
+          // Resolve the current round promise so the LLM tool unblocks
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // User requests refinement → round resolves with refinement status, server stays alive
+        if (request.method === "POST" && requestUrl.pathname === "/api/refine") {
+          const body = (await request.json()) as { questionId: string; userIntent: string }
+          currentSession = reduce(currentSession, {
+            type: "REFINE",
+            questionId: body.questionId,
+            userIntent: body.userIntent,
+          })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Workbench refinement requested: ${currentSession.id}`)
+
+          // Resolve the round so the LLM can process the refinement
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(
+            { status: "refinement_requested", session: currentSession },
+            { headers: responseHeaders },
+          )
+        }
+
+        // LLM explicitly completes the session → marks completed, resolves any pending round
         if (request.method === "POST" && requestUrl.pathname === "/api/complete") {
           currentSession = reduce(currentSession, { type: "COMPLETE" })
           await saveSession(currentSession, config.baseDir)
-          if (!completed) {
-            completed = true
-            resolveCompletion(currentSession)
-            config.onLog?.(`Workbench session completed: ${currentSession.id}`)
-          }
-          if (!stopped) {
-            stopped = true
-            server.stop()
-          }
+          config.onLog?.(`Workbench session completed: ${currentSession.id}`)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
 
           return Response.json({ status: "completed", session: currentSession }, { headers: responseHeaders })
+        }
+
+        // LLM explicitly closes the server
+        if (request.method === "POST" && requestUrl.pathname === "/api/close") {
+          if (currentSession.status !== "completed" && currentSession.status !== "abandoned") {
+            currentSession = reduce(currentSession, { type: "COMPLETE" })
+            await saveSession(currentSession, config.baseDir)
+          }
+          config.onLog?.(`Workbench server closed: ${currentSession.id}`)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          // Stop the server after responding
+          setTimeout(() => stopServer(), 100)
+
+          return Response.json({ status: "closed", session: currentSession }, { headers: responseHeaders })
         }
 
         return Response.json({ error: "Not Found" }, { status: 404, headers: responseHeaders })
@@ -190,43 +302,42 @@ export async function startWorkbenchServer(
   })
 
   const abandonAndResolve = async (): Promise<void> => {
-    if (completed) {
+    if (currentSession.status === "abandoned" || currentSession.status === "completed") {
       return
     }
 
     currentSession = reduce(currentSession, { type: "ABANDON" })
     await saveSession(currentSession, config.baseDir)
-    completed = true
-    resolveCompletion(currentSession)
     config.onLog?.(`Workbench session abandoned: ${currentSession.id}`)
-    if (!stopped) {
-      stopped = true
-      server.stop()
-    }
+
+    roundResolve?.(currentSession)
+    roundResolve = null
+    roundReject = null
+
+    stopServer()
   }
 
   abortSignal?.addEventListener("abort", () => {
     abandonAndResolve().catch((error) => {
-      rejectCompletion(error instanceof Error ? error : new Error(String(error)))
+      roundReject?.(error instanceof Error ? error : new Error(String(error)))
+      roundResolve = null
+      roundReject = null
     })
   })
 
   const assignedPort = server.port ?? 0
-  config.onLog?.(`Workbench server started on 127.0.0.1:${assignedPort}`)
+  config.onLog?.(`Workbench server started on ${WORKBENCH_SERVER_HOSTNAME}:${assignedPort}`)
 
   return {
-    url: `http://127.0.0.1:${assignedPort}`,
+    url: `http://${WORKBENCH_SERVER_HOSTNAME}:${assignedPort}`,
     port: assignedPort,
     token,
-    stop: () => {
-      if (idleTimer !== undefined) {
-        clearTimeout(idleTimer)
-      }
-      if (!stopped) {
-        stopped = true
-        server.stop()
-      }
+    stop: stopServer,
+    waitForRound: () => {
+      return new Promise<WorkbenchSession>((resolve, reject) => {
+        roundResolve = resolve
+        roundReject = reject
+      })
     },
-    waitForCompletion: () => completionPromise,
   }
 }

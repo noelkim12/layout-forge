@@ -2,6 +2,6 @@
   "name": "opencode-layout-workbench",
   "private": true,
   "dependencies": {
-    "@opencode-ai/plugin": "latest"
+    "@opencode-ai/plugin": "1.2.20"
   }
 }
