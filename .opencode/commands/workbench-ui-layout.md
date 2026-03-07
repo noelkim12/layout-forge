@@ -1,9 +1,9 @@
 ---
-description: Open step-by-step UI layout decision workbench
+description: Open visual UI layout preview review workbench
 agent: plan
 ---
 
-Determine the **visual UI layout** for the current request through a step-by-step decision process.
+Determine the **visual UI layout** for the current request through a structured preview review process.
 
 User goal:
 $ARGUMENTS
@@ -46,6 +46,8 @@ Plan 3-7 questions about **visual layout** decisions. Each question must pass th
 > "Does this question affect what the user sees on screen?"
 > If NO → do not include it.
 
+Questions should gather enough information to generate a visual preview of the layout. Think about: overall structure, navigation placement, main content area, secondary panels, and information density.
+
 Good question examples:
 - "메인 화면의 레이아웃 구조를 선택하세요" (sidebar + content / three-column / stacked)
 - "네비게이션 패턴을 선택하세요" (top bar / side drawer / bottom tabs)
@@ -74,24 +76,57 @@ Call `layout_push_questions` with the complete `questions` array. The loading st
 
 Call `layout_await_completion` to block until the user submits their answers for this round.
 
-### Step 5: Process and Respond (Multi-Round Flow)
+### Step 5: Generate Visual Preview
 
 When `layout_await_completion` returns the user's answers:
 
-1. **Send a processing message** — Call `layout_push_message` with a brief status update (e.g. "Analyzing your layout choices..."). The user sees this in the browser while you process.
+1. **Send a processing message** — Call `layout_push_message` with a brief status update (e.g. "Analyzing your layout choices and generating a visual preview..."). The user sees this in the browser while you process.
 
-2. **Analyze the answers** — Determine if you have enough information to produce a final layout summary, or if follow-up questions are needed.
+2. **Analyze the answers** — Determine if you have enough information to generate a visual preview, or if follow-up questions are needed.
 
-3. **If follow-up questions are needed** — Call `layout_push_questions` with the new questions, then call `layout_await_completion` again to wait for the next round. Repeat this loop as needed. Each round replaces the previous questions with fresh ones.
+3. **If follow-up questions are needed** — Call `layout_push_questions` with the new questions, then call `layout_await_completion` again. Repeat as needed.
 
-4. **If the layout is decided** — Call `layout_push_message` with the final layout summary so the user can see it in the browser. Then call `layout_push_questions` with a feedback question (e.g. approve / request changes / refine specific area). Call `layout_await_completion` to wait for the user's response. Only call `layout_close` after the user explicitly approves the layout.
+4. **If ready to generate a preview** — Build a `LayoutIntent` and `VisualPreview` from the answers:
+   - `LayoutIntent`: structured layout decisions (structure, navigation, mainContent, detailPlacement, bottomArea, density, constraints)
+   - `VisualPreview`: CSS Grid-based layout with nodes positioned by role (nav, sidebar, main, inspector, bottom, toolbar)
+   - Each node has: `id`, `label`, `summary`, `role`, `x`, `y`, `w`, `h` (grid position and span)
+   - Set `cols` and `rows` for the grid (e.g. `cols: 12, rows: 8`)
 
-### Step 6: Final Summary
+5. **Call `layout_push_preview`** with the `intent` and `preview` data. This commits requirements, sets the preview, and transitions to review mode.
+
+6. **Call `layout_await_completion`** to wait for the user's review action. The user can:
+   - **Approve Preview** — Accept the layout and proceed to prompt generation
+   - **Revise Selected Area** — Request changes to a specific region (returns review with targetNodeId)
+   - **Need More Questions** — Return to collecting mode for more requirements
+   - **Finish Without Prompt** — End session without generating a prompt
+
+7. **Handle review result**:
+   - If user approved: proceed to Step 6
+   - If user requested revisions: generate updated preview, call `layout_push_preview` again
+   - If user needs more questions: call `layout_push_questions` with follow-up questions
+   - If user finished without prompt: call `layout_close`
+
+### Step 6: Prompt Suggestion
+
+After the user approves the preview:
+
+1. Build a `PromptPacket` from the session context:
+   - `summary`: summary of all captured requirements
+   - `approvedPreviewSummary`: title and outline of the approved preview
+   - `constraints`: fixed layout constraints from the intent
+   - `avoid`: things to avoid in the layout
+   - `outputFormat`: "Structured component layout with sections matching the approved preview regions"
+
+2. Call `layout_build_prompt` with the `packet` and `renderedPrompt` (a formatted string combining all 5 fields).
+
+3. The user can also click "Suggest Prompt" in the browser to trigger this step.
+
+4. Call `layout_close` to end the session.
 
 After closing the workbench, provide a brief summary in the terminal:
 1. Final visual layout combination
 2. Why this layout fits the user's UI goals
-3. Remaining layout decisions (if any)
+3. The generated prompt (if available)
 
 ## Multi-Round Tool Reference
 
@@ -99,8 +134,10 @@ After closing the workbench, provide a brief summary in the terminal:
 |------|---------|-------------|
 | `layout_open_workbench` | Open browser with loading state | Once at start (Step 1) |
 | `layout_push_questions` | Send questions to browser | Each round of questions (Steps 3, 5.3) |
-| `layout_await_completion` | Wait for user answers | After each `push_questions` (Steps 4, 5.3) |
-| `layout_push_message` | Show text message in browser | Status updates, final summary (Steps 5.1, 5.4) |
-| `layout_close` | End session, close server | ONLY after user explicitly approves layout (Step 5.4) |
+| `layout_await_completion` | Wait for user answers or review action | After each push (Steps 4, 5.6) |
+| `layout_push_message` | Show text message in browser | Status updates (Step 5.1) |
+| `layout_push_preview` | Push visual preview for review | After generating preview (Step 5.5) |
+| `layout_build_prompt` | Generate PromptPacket and rendered prompt | After preview approval (Step 6.2) |
+| `layout_close` | End session, close server | ONLY after user approves or finishes (Steps 5.7, 6.4) |
 
-**Important**: The browser stays open throughout the entire multi-round flow. The user never has to leave the browser or return to the terminal until the session is fully complete.
+**Important**: The browser stays open throughout the entire flow. The user never has to leave the browser or return to the terminal until the session is fully complete.
