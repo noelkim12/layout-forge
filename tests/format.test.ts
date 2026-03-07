@@ -128,3 +128,53 @@ describe("format and export", () => {
     expect(filePath).toContain("-layout-plan.md")
   })
 })
+
+describe("formatToolResult phase-aware output", () => {
+  test("reviewing phase returns review guidance", () => {
+    const session = {
+      ...COMPLETED_SESSION,
+      phase: "reviewing" as const,
+      visualPreview: {
+        id: "p1",
+        title: "Test Layout",
+        cols: 12,
+        rows: 8,
+        nodes: [],
+        outline: [{ id: "o1", title: "Main", summary: "Main area" }],
+        generatedAt: new Date().toISOString(),
+      },
+    }
+    const result = formatToolResult(session)
+    expect(result).toContain("Preview Ready for Review")
+    expect(result).toContain("Approve Preview")
+    expect(result).toContain("layout_await_completion")
+    expect(result).not.toContain("Next Steps (MANDATORY)")
+  })
+
+  test("approved phase returns approval guidance", () => {
+    const session = {
+      ...COMPLETED_SESSION,
+      phase: "approved" as const,
+      approvedPreviewId: "p1",
+    }
+    const result = formatToolResult(session)
+    expect(result).toContain("Preview Approved")
+    expect(result).toContain("layout_build_prompt")
+  })
+
+  test("finished phase returns completion message", () => {
+    const session = {
+      ...COMPLETED_SESSION,
+      phase: "finished" as const,
+      renderedPrompt: "Build a dashboard with sidebar",
+    }
+    const result = formatToolResult(session)
+    expect(result).toContain("Session Complete")
+    expect(result).toContain("Build a dashboard with sidebar")
+  })
+
+  test("collecting phase (undefined) output unchanged", () => {
+    const result = formatToolResult(COMPLETED_SESSION)
+    expect(result).toContain("Next Steps (MANDATORY")
+  })
+})

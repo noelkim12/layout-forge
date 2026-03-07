@@ -1,0 +1,36 @@
+bun test v1.3.9 (cf6cdbbb)
+
+tests/format.test.ts:
+83 |       messages: [],
+84 |     }
+85 | 
+86 |     const result = formatToolResult(abandonedSession)
+87 | 
+88 |     expect(result).toBe("사용자가 워크벤치를 중단했습니다.")
+                        ^
+error: expect(received).toBe(expected)
+
+Expected: "사용자가 워크벤치를 중단했습니다."
+Received: "The user has abandoned the workbench session."
+
+      at <anonymous> (/home/noel/projects/personal/opencode-layout-workbench/tests/format.test.ts:88:20)
+(fail) format and export > formatToolResult returns abandoned message for abandoned session [0.60ms]
+88 |     expect(result).toBe("사용자가 워크벤치를 중단했습니다.")
+89 |   })
+90 | 
+91 |   test("formatToolResult result is under 2048 characters", () => {
+92 |     const result = formatToolResult(COMPLETED_SESSION)
+93 |     expect(result.length).toBeLessThan(2048)
+                               ^
+error: expect(received).toBeLessThan(expected)
+
+Expected: < 2048
+Received: 2236
+
+      at <anonymous> (/home/noel/projects/personal/opencode-layout-workbench/tests/format.test.ts:93:27)
+(fail) format and export > formatToolResult result is under 2048 characters [1.90ms]
+
+ 8 pass
+ 2 fail
+ 28 expect() calls
+Ran 10 tests across 1 file. [35.00ms]

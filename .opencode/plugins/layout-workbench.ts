@@ -6,6 +6,7 @@ import { startWorkbenchServer } from "./lw/server"
 import type { WorkbenchServer } from "./lw/server"
 import { formatToolResult } from "./lw/format"
 import { exportMarkdownPlan } from "./lw/export"
+import type { WorkbenchSession } from "./lw/types"
 import { openBrowser } from "./lw/browser"
 
 const questionSchema = tool.schema.object({
@@ -48,6 +49,49 @@ const questionSchema = tool.schema.object({
     .boolean()
     .optional()
     .describe("Allow the user to type a custom answer beyond the provided options (for select-type questions)"),
+})
+
+const layoutIntentSchema = tool.schema.object({
+  structure: tool.schema.string().optional().describe("Overall layout structure (e.g. 'sidebar + main', 'three-column')"),
+  navigation: tool.schema.string().optional().describe("Navigation pattern"),
+  mainContent: tool.schema.array(tool.schema.string()).optional().describe("Main content area descriptions"),
+  detailPlacement: tool.schema.string().optional().describe("Where detail/inspector panels go"),
+  bottomArea: tool.schema.string().optional().describe("Bottom area usage"),
+  density: tool.schema.number().optional().describe("Information density (0-1)"),
+  constraints: tool.schema.object({
+    fixed: tool.schema.array(tool.schema.string()).describe("Fixed layout constraints"),
+    flexible: tool.schema.array(tool.schema.string()).describe("Flexible layout elements"),
+    avoid: tool.schema.array(tool.schema.string()).describe("Things to avoid"),
+  }).describe("Layout constraints"),
+})
+
+const visualPreviewNodeSchema = tool.schema.object({
+  id: tool.schema.string().describe("Unique node ID"),
+  label: tool.schema.string().describe("Display label for this region"),
+  role: tool.schema.enum(["nav", "sidebar", "main", "inspector", "bottom", "toolbar"]).describe("Region role"),
+  x: tool.schema.number().describe("Grid column start (1-based)"),
+  y: tool.schema.number().describe("Grid row start (1-based)"),
+  w: tool.schema.number().describe("Grid column span"),
+  h: tool.schema.number().describe("Grid row span"),
+  summary: tool.schema.string().optional().describe("Brief description of this region's content"),
+})
+
+const visualPreviewSchema = tool.schema.object({
+  id: tool.schema.string().describe("Unique preview ID"),
+  title: tool.schema.string().describe("Preview title"),
+  cols: tool.schema.number().describe("CSS Grid column count (e.g. 12)"),
+  rows: tool.schema.number().describe("CSS Grid row count (e.g. 8)"),
+  nodes: tool.schema.array(visualPreviewNodeSchema).describe("Layout regions"),
+  outline: tool.schema.array(tool.schema.object({
+    id: tool.schema.string(),
+    title: tool.schema.string(),
+    summary: tool.schema.string(),
+  })).describe("Outline entries for each region"),
+  raw: tool.schema.object({
+    ascii: tool.schema.string().optional(),
+    notes: tool.schema.array(tool.schema.string()).optional(),
+  }).optional().describe("Raw ASCII preview and notes"),
+  generatedAt: tool.schema.string().describe("ISO timestamp when preview was generated"),
 })
 
 export const LayoutWorkbenchPlugin: Plugin = async (ctx) => {
@@ -201,6 +245,41 @@ export const LayoutWorkbenchPlugin: Plugin = async (ctx) => {
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error)
             return `Failed to push questions: ${message}`
+          }
+        },
+      }),
+
+      layout_push_preview: tool({
+        description: "Pushes a visual preview to the workbench for user review. The preview consists of a LayoutIntent (structured layout decisions) and a VisualPreview (grid-based node layout). This atomically commits current requirements, sets the preview, and transitions to review mode. Call layout_await_completion after this to wait for user review action (approve/revise/more questions/finish).",
+        args: {
+          intent: layoutIntentSchema,
+          preview: visualPreviewSchema,
+        },
+        async execute(args) {
+          if (!activeServer) {
+            return "No active workbench session. Call layout_open_workbench first."
+          }
+
+          try {
+            const res = await fetch(`${activeServer.url}/api/push-preview`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Session-Token": activeServer.token,
+              },
+              body: JSON.stringify({ intent: args.intent, preview: args.preview }),
+            })
+
+            if (!res.ok) {
+              const errorBody = await res.text()
+              return `Failed to push preview: ${res.status} ${errorBody}`
+            }
+
+            const state = await res.json() as { session: WorkbenchSession }
+            return formatToolResult(state.session)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            return `Failed to push preview: ${message}`
           }
         },
       }),

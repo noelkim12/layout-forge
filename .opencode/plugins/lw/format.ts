@@ -40,6 +40,68 @@ export function formatToolResult(session: WorkbenchSession): string {
     (item) => `- [${item.number}] ${item.title}: ${item.summary} (${item.status})`,
   )
 
+  // Phase-aware output for review/preview phases
+  if (session.phase === "reviewing") {
+    const preview = session.visualPreview
+    const lines = [
+      `## Preview Ready for Review`,
+      ``,
+      `**Preview**: ${preview?.title ?? "Untitled"}`,
+      `**Regions**: ${preview?.nodes.length ?? 0} layout regions`,
+      ``,
+      `## Outline`,
+      ...(preview?.outline.map(o => `- **${o.title}**: ${o.summary}`) ?? ["- (no outline)"]),
+      ``,
+      `## Requirements Captured`,
+      `${session.requirementLedger?.length ?? 0} requirements accumulated across ${session.requirementSnapshots?.length ?? 0} rounds`,
+      ``,
+      `## Available Review Actions`,
+      `- **Approve Preview** — Accept this layout and proceed to prompt generation`,
+      `- **Revise Selected Area** — Request changes to a specific region`,
+      `- **Need More Questions** — Return to collecting mode for more requirements`,
+      `- **Finish Without Prompt** — End session without generating a prompt`,
+      ``,
+      `The user is reviewing the preview in the browser. Call layout_await_completion to wait for their review action.`,
+      ``,
+      `Session ID: ${session.id}`,
+    ]
+    return clampLength(lines.join("\n"))
+  }
+
+  if (session.phase === "approved") {
+    const lines = [
+      `## Preview Approved`,
+      ``,
+      `**Approved Preview**: ${session.visualPreview?.title ?? "Untitled"}`,
+      `**Approved Preview ID**: ${session.approvedPreviewId}`,
+      ``,
+      `The preview has been approved. Next steps:`,
+      `1. Call layout_build_prompt with a PromptPacket to generate the final prompt, OR`,
+      `2. Call layout_close to finish without a prompt.`,
+      ``,
+      `Session ID: ${session.id}`,
+    ]
+    return clampLength(lines.join("\n"))
+  }
+
+  if (session.phase === "finished") {
+    const lines = [
+      `## Session Complete`,
+      ``,
+      ...(session.renderedPrompt ? [
+        `## Generated Prompt`,
+        `\`\`\``,
+        session.renderedPrompt,
+        `\`\`\``,
+        ``,
+      ] : []),
+      `Session complete. Call layout_close to clean up.`,
+      ``,
+      `Session ID: ${session.id}`,
+    ]
+    return clampLength(lines.join("\n"))
+  }
+
   if (session.status === "abandoned") {
     return "The user has abandoned the workbench session."
   }
