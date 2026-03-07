@@ -262,7 +262,7 @@ export const LayoutWorkbenchPlugin: Plugin = async (ctx) => {
 
       layout_close: tool({
         description:
-          "Closes the layout workbench session and stops the server. IMPORTANT: Only call this AFTER the user has explicitly approved the layout. The typical flow is: push layout message → push feedback questions → await user approval → close. Do NOT call this immediately after pushing a layout proposal without getting user feedback first."
+          "Closes the layout workbench session and stops the server. IMPORTANT: Only call this AFTER the user has explicitly approved the layout. The typical flow is: push layout message → push feedback questions → await user approval → close. Do NOT call this immediately after pushing a layout proposal without getting user feedback first.",
         args: {},
         async execute() {
           if (!activeServer) {
