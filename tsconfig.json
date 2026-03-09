@@ -10,9 +10,9 @@
     "rootDir": ".",
     "types": ["bun-types"],
     "paths": {
-      "@lw/*": ["./.opencode/plugins/lw/*"]
+      "@lf/*": ["./.opencode/plugins/lf/*"]
     }
   },
-  "include": [".opencode/plugins/**/*.ts", "tests/**/*.ts"],
+  "include": [".opencode/plugins/**/*.ts", ".opencode/layout-forge/ui/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
