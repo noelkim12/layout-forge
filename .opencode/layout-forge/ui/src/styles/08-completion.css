@@ -1,0 +1,95 @@
+    .skeleton {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      height: 16px;
+      background: linear-gradient(90deg, #222b34 20%, #2d3742 38%, #222b34 60%);
+      background-size: 220% 100%;
+      animation: pulse 1.2s linear infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    .complete {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .complete-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .complete-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--bg-tertiary);
+      display: grid;
+      gap: 4px;
+    }
+
+    .complete-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .complete-value {
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .complete-final {
+      border: 1px solid #2f5c38;
+      background: rgba(63, 185, 80, 0.12);
+      color: #bde9c4;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+
+    .muted {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .toggle-mode-btn {
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .toggle-mode-btn:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+      background: rgba(88, 166, 255, 0.08);
+    }
+

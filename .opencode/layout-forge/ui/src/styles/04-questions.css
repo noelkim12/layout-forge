@@ -1,0 +1,221 @@
+    .question-wrap {
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--bg-secondary);
+      padding: 20px;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: question-in var(--transition-base);
+    }
+
+    @keyframes question-in {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .question-label {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    .question-description {
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 10px;
+    }
+
+    .choice {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      text-align: left;
+      padding: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+    }
+
+    .choice:hover {
+      border-color: #4a5a70;
+      transform: translateY(-1px);
+    }
+
+    .choice.selected {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.1);
+    }
+
+    .choice-indicator {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #708199;
+      border-radius: 99px;
+      margin-top: 1px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .choice-indicator.checkbox {
+      border-radius: 4px;
+    }
+
+    .choice.selected .choice-indicator {
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .choice-indicator::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: transparent;
+    }
+
+    .choice.selected .choice-indicator::after {
+      background: #0b1220;
+    }
+
+    .choice-indicator.checkbox::after {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .choice-title {
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .choice-description {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .field,
+    .textarea,
+    .number-field,
+    .select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font-sans);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .field:focus,
+    .textarea:focus,
+    .number-field:focus,
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .slider-row {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      padding: 16px;
+    }
+
+    .slider-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .slider-value {
+      color: var(--accent);
+      font-size: 24px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .range {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .toggle-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-tertiary);
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toggle-switch {
+      width: 54px;
+      height: 30px;
+      border-radius: 99px;
+      border: 1px solid #4f5963;
+      background: #263142;
+      position: relative;
+      cursor: pointer;
+      transition: background var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .toggle-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform var(--transition-fast);
+    }
+
+    .toggle-switch.is-on {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.8);
+    }
+
+    .toggle-switch.is-on::after {
+      transform: translateX(24px);
+    }
+

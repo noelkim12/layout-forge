@@ -1,0 +1,40 @@
+    @media (max-width: 1200px) {
+      .forge {
+        grid-template-columns: 240px 1fr 280px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        padding: 10px;
+      }
+
+      .forge {
+        border-radius: var(--radius);
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-height: auto;
+        max-height: none;
+      }
+
+      .sidebar,
+      .info {
+        border-right: 0;
+        border-left: 0;
+      }
+
+      .sidebar {
+        border-bottom: 1px solid var(--border);
+      }
+
+      .info {
+        border-top: 1px solid var(--border);
+      }
+
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
