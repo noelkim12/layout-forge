@@ -1,0 +1,5 @@
+Generates a PromptPacket from the approved preview and requirements. Only callable after preview approval (phase === 'approved'). Transitions session to "prompt-ready" phase (NOT "finished"). The generated prompt will be displayed in the browser for the user to review, copy, or download. The LLM must generate the prompt following Step 7 guidance (explicit sections, measurable constraints, anti-patterns, and acceptance criteria), then submit packet + renderedPrompt through this tool.
+
+After calling this tool, the session enters "prompt-ready" phase. DO NOT call layout_close — the user is reviewing the prompt in the browser. Wait for the session to transition to "finished" (the user will dismiss the prompt when ready).
+
+CONTEXT RULE: Build the prompt using ONLY the requirements collected in this forge session and any files explicitly linked by the user. Do NOT reference or incorporate information from unrelated codebase documents discovered during exploration.

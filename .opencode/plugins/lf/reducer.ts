@@ -1,6 +1,7 @@
 import type {
   Answer,
   AnswerValue,
+  ContextSourceRef,
   LayoutIntent,
   PreviewReview,
   PromptPacket,
@@ -25,12 +26,15 @@ export type Action =
   | { type: "SUBMIT_ROUND" }
   | { type: "PUSH_MESSAGE"; content: string }
   | { type: "COMMIT_REQUIREMENTS" }
-  | { type: "SET_PHASE"; phase: "collecting" | "previewing" | "reviewing" | "approved" | "finished" }
+  | { type: "SET_PHASE"; phase: "collecting" | "previewing" | "reviewing" | "approved" | "prompt-ready" | "finished" }
   | { type: "SET_LAYOUT_INTENT"; intent: LayoutIntent }
   | { type: "SET_VISUAL_PREVIEW"; preview: VisualPreview }
   | { type: "PUSH_PREVIEW_REVIEW"; review: PreviewReview }
   | { type: "APPROVE_PREVIEW"; previewId: string }
+  | { type: "REQUEST_PROMPT_SUGGESTION" }
   | { type: "SET_PROMPT_PROPOSAL"; packet: PromptPacket; renderedPrompt: string }
+  | { type: "ADD_CONTEXT_SOURCE"; source: ContextSourceRef }
+  | { type: "DISMISS_PROMPT" }
 export function reduce(session: WorkbenchSession, action: Action): WorkbenchSession {
   const now = new Date().toISOString()
 
@@ -146,6 +150,7 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
         currentIndex: 0,
         answers: {},
         history: [],
+        messages: [],
         phase: "collecting",
         updatedAt: now,
       }
@@ -214,7 +219,9 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
         ["reviewing", "collecting"],
         ["reviewing", "approved"],
         ["reviewing", "finished"],
+        ["approved", "prompt-ready"],
         ["approved", "finished"],
+        ["prompt-ready", "finished"],
       ]
       const isValid = validTransitions.some(([f, t]) => f === from && t === to)
       if (!isValid) {
@@ -247,11 +254,55 @@ export function reduce(session: WorkbenchSession, action: Action): WorkbenchSess
       if (session.visualPreview?.id !== action.previewId) {
         throw new Error(`Preview ID mismatch: expected ${session.visualPreview?.id}, got ${action.previewId}`)
       }
-      return { ...session, approvedPreviewId: action.previewId, phase: "approved", updatedAt: now }
+      return {
+        ...session,
+        approvedPreviewId: action.previewId,
+        promptSuggestionRequestedAt: undefined,
+        phase: "approved",
+        updatedAt: now,
+      }
+    }
+
+    case "REQUEST_PROMPT_SUGGESTION": {
+      if (session.phase !== "approved" || !session.approvedPreviewId) {
+        throw new Error("Prompt suggestion can only be requested after preview approval")
+      }
+
+      return {
+        ...session,
+        promptSuggestionRequestedAt: now,
+        updatedAt: now,
+      }
     }
 
     case "SET_PROMPT_PROPOSAL": {
-      return { ...session, promptPacket: action.packet, renderedPrompt: action.renderedPrompt, updatedAt: now }
+      return {
+        ...session,
+        promptSuggestionRequestedAt: undefined,
+        promptPacket: action.packet,
+        renderedPrompt: action.renderedPrompt,
+        updatedAt: now,
+      }
+    }
+
+    case "ADD_CONTEXT_SOURCE": {
+      const existing = session.contextSources ?? []
+      // Deduplicate by id
+      if (existing.some((s) => s.id === action.source.id)) {
+        return session
+      }
+      return {
+        ...session,
+        contextSources: [...existing, action.source],
+        updatedAt: now,
+      }
+    }
+
+    case "DISMISS_PROMPT": {
+      return {
+        ...session,
+        updatedAt: now,
+      }
     }
 
   }

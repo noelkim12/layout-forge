@@ -2,7 +2,7 @@ import { mkdir, unlink } from "fs/promises"
 import { join } from "path"
 import type { QuestionDefinition, WorkbenchSession } from "./types"
 
-const SESSIONS_RELATIVE_DIR = ".opencode/layout-workbench/sessions"
+const SESSIONS_RELATIVE_DIR = ".opencode/layout-forge/sessions"
 
 function getSessionsDir(baseDir: string): string {
   return join(baseDir, SESSIONS_RELATIVE_DIR)

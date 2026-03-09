@@ -1,0 +1,1 @@
+Blocks until the user submits their answers for the current round, requests refinement, or abandons the session. The forge server stays alive after this returns - you can push more questions or a message, then await again. Call layout_close when fully done.

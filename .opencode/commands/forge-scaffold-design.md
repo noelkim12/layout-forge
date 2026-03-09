@@ -1,5 +1,5 @@
 ---
-description: Open step-by-step design decision workbench (general-purpose)
+description: Open step-by-step design decision forge (general-purpose)
 agent: plan
 model: google/gemini-3.1-pro-preview
 ---
@@ -11,7 +11,7 @@ $ARGUMENTS
 
 ## Workflow
 
-### Step 1: Open the workbench immediately
+### Step 1: Open the forge immediately
 
 Call `layout_open_workbench` with only the `brief` parameter (no `questions`). This opens the browser with a loading indicator so the user sees immediate feedback.
 
@@ -33,7 +33,7 @@ For each question, decide:
 - `dependsOn`: conditional visibility based on another question's answer (optional)
 - `required`: whether the question must be answered (optional)
 
-### Step 3: Push questions to the workbench
+### Step 3: Push questions to the forge
 
 Call `layout_push_questions` with the complete `questions` array. The loading state in the browser will transition to show the questions.
 

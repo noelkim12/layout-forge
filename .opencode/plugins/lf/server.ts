@@ -1,4 +1,4 @@
-import type { AnswerValue, LayoutIntent, PreviewReview, PromptPacket, QuestionDefinition, VisualPreview, WorkbenchSession } from "./types"
+import type { AnswerValue, ContextSourceRef, LayoutIntent, PreviewReview, PromptPacket, QuestionDefinition, VisualPreview, WorkbenchSession } from "./types"
 import { getApplicableQuestions, getCurrentQuestion, getProgress } from "./graph"
 import { reduce } from "./reducer"
 import { saveSession } from "./store"
@@ -51,7 +51,7 @@ function buildSessionState(session: WorkbenchSession): {
   layoutIntent: LayoutIntent | null
   promptPacket: PromptPacket | null
   renderedPrompt: string | null
-  phase: "collecting" | "previewing" | "reviewing" | "approved" | "finished"
+  phase: "collecting" | "previewing" | "reviewing" | "approved" | "prompt-ready" | "finished"
 } {
   return {
     session,
@@ -78,7 +78,7 @@ function forbiddenResponse(originHeaders: HeadersInit): Response {
 }
 
 /**
- * Starts an ephemeral local HTTP server that serves the workbench SPA and session API.
+ * Starts an ephemeral local HTTP server that serves the forge SPA and session API.
  * Supports multi-round flow: the server stays alive across multiple question rounds.
  */
 export async function startWorkbenchServer(
@@ -108,7 +108,7 @@ export async function startWorkbenchServer(
         roundResolve?.(currentSession)
         roundResolve = null
         roundReject = null
-        config.onLog?.(`Workbench session timed out: ${currentSession.id}`)
+        config.onLog?.(`Forge session timed out: ${currentSession.id}`)
       } catch (error) {
         roundReject?.(error instanceof Error ? error : new Error(String(error)))
         roundResolve = null
@@ -226,7 +226,7 @@ export async function startWorkbenchServer(
           const body = (await request.json()) as { questions: QuestionDefinition[] }
           currentSession = reduce(currentSession, { type: "SET_QUESTIONS", questions: body.questions })
           await saveSession(currentSession, config.baseDir)
-          config.onLog?.(`Questions pushed to workbench: ${body.questions.length} questions`)
+          config.onLog?.(`Questions pushed to forge: ${body.questions.length} questions`)
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
@@ -235,7 +235,7 @@ export async function startWorkbenchServer(
           const body = (await request.json()) as { content: string }
           currentSession = reduce(currentSession, { type: "PUSH_MESSAGE", content: body.content })
           await saveSession(currentSession, config.baseDir)
-          config.onLog?.(`Message pushed to workbench`)
+          config.onLog?.(`Message pushed to forge`)
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
@@ -285,17 +285,51 @@ export async function startWorkbenchServer(
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
+        if (request.method === "POST" && requestUrl.pathname === "/api/request-prompt-suggestion") {
+          currentSession = reduce(currentSession, { type: "REQUEST_PROMPT_SUGGESTION" })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Prompt suggestion requested: ${currentSession.id}`)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
         // LLM provides the built prompt for the session
         if (request.method === "POST" && requestUrl.pathname === "/api/build-prompt") {
           const body = (await request.json()) as { packet: PromptPacket; renderedPrompt: string }
           currentSession = reduce(currentSession, { type: "SET_PROMPT_PROPOSAL", packet: body.packet, renderedPrompt: body.renderedPrompt })
-          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "finished" })
+          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "prompt-ready" })
           await saveSession(currentSession, config.baseDir)
 
           roundResolve?.(currentSession)
           roundResolve = null
           roundReject = null
 
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // User dismisses the prompt in the browser → transition to finished
+        if (request.method === "POST" && requestUrl.pathname === "/api/dismiss-prompt") {
+          currentSession = reduce(currentSession, { type: "DISMISS_PROMPT" })
+          currentSession = reduce(currentSession, { type: "SET_PHASE", phase: "finished" })
+          await saveSession(currentSession, config.baseDir)
+          config.onLog?.(`Prompt dismissed: ${currentSession.id}`)
+
+          roundResolve?.(currentSession)
+          roundResolve = null
+          roundReject = null
+
+          return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
+        }
+
+        // LLM registers a context source on the session
+        if (request.method === "POST" && requestUrl.pathname === "/api/add-context-source") {
+          const body = (await request.json()) as { source: ContextSourceRef }
+          currentSession = reduce(currentSession, { type: "ADD_CONTEXT_SOURCE", source: body.source })
+          await saveSession(currentSession, config.baseDir)
           return Response.json(buildSessionState(currentSession), { headers: responseHeaders })
         }
 
@@ -322,7 +356,7 @@ export async function startWorkbenchServer(
             userIntent: body.userIntent,
           })
           await saveSession(currentSession, config.baseDir)
-          config.onLog?.(`Workbench refinement requested: ${currentSession.id}`)
+          config.onLog?.(`Forge refinement requested: ${currentSession.id}`)
 
           // Resolve the round so the LLM can process the refinement
           roundResolve?.(currentSession)
@@ -339,7 +373,7 @@ export async function startWorkbenchServer(
         if (request.method === "POST" && requestUrl.pathname === "/api/complete") {
           currentSession = reduce(currentSession, { type: "COMPLETE" })
           await saveSession(currentSession, config.baseDir)
-          config.onLog?.(`Workbench session completed: ${currentSession.id}`)
+          config.onLog?.(`Forge session completed: ${currentSession.id}`)
 
           roundResolve?.(currentSession)
           roundResolve = null
@@ -354,7 +388,7 @@ export async function startWorkbenchServer(
             currentSession = reduce(currentSession, { type: "COMPLETE" })
             await saveSession(currentSession, config.baseDir)
           }
-          config.onLog?.(`Workbench server closed: ${currentSession.id}`)
+          config.onLog?.(`Forge server closed: ${currentSession.id}`)
 
           roundResolve?.(currentSession)
           roundResolve = null
@@ -369,20 +403,20 @@ export async function startWorkbenchServer(
         return Response.json({ error: "Not Found" }, { status: 404, headers: responseHeaders })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        config.onLog?.(`Workbench server error: ${message}`)
+        config.onLog?.(`Forge server error: ${message}`)
         return Response.json({ error: message }, { status: 500, headers: responseHeaders })
       }
     },
   })
 
-  const abandonAndResolve = async (): Promise<void> => {
+  async function abandonAndResolve(): Promise<void> {
     if (currentSession.status === "abandoned" || currentSession.status === "completed") {
       return
     }
 
     currentSession = reduce(currentSession, { type: "ABANDON" })
     await saveSession(currentSession, config.baseDir)
-    config.onLog?.(`Workbench session abandoned: ${currentSession.id}`)
+    config.onLog?.(`Forge session abandoned: ${currentSession.id}`)
 
     roundResolve?.(currentSession)
     roundResolve = null
@@ -400,7 +434,7 @@ export async function startWorkbenchServer(
   })
 
   const assignedPort = server.port ?? 0
-  config.onLog?.(`Workbench server started on ${WORKBENCH_SERVER_HOSTNAME}:${assignedPort}`)
+  config.onLog?.(`Forge server started on ${WORKBENCH_SERVER_HOSTNAME}:${assignedPort}`)
 
   return {
     url: `http://${WORKBENCH_SERVER_HOSTNAME}:${assignedPort}`,

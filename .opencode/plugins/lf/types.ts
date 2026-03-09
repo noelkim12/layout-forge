@@ -82,6 +82,18 @@ export interface RequirementItem {
   value: string | string[] | number | boolean
   sourceQuestionId: string
   capturedAt: string
+  contextSource?: string
+  provenanceNote?: string
+}
+
+export type ContextSourceType = "file" | "user-answer" | "session-brief" | "external-doc"
+
+export interface ContextSourceRef {
+  id: string
+  type: ContextSourceType
+  path?: string
+  description: string
+  addedAt: string
 }
 
 export interface RequirementSnapshot {
@@ -158,14 +170,16 @@ export interface WorkbenchSession {
   updatedAt: string
   status: "active" | "processing" | "completed" | "abandoned" | "refinement_requested"
   refinementRequest?: RefinementRequest
-  phase?: "collecting" | "previewing" | "reviewing" | "approved" | "finished"
+  phase?: "collecting" | "previewing" | "reviewing" | "approved" | "prompt-ready" | "finished"
   requirementLedger?: RequirementItem[]
   requirementSnapshots?: RequirementSnapshot[]
+  contextSources?: ContextSourceRef[]
   layoutIntent?: LayoutIntent
   visualPreview?: VisualPreview
   previewHistory?: VisualPreview[]
   previewReviews?: PreviewReview[]
   approvedPreviewId?: string
+  promptSuggestionRequestedAt?: string
   promptPacket?: PromptPacket
   renderedPrompt?: string
   messages: SessionMessage[]

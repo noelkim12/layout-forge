@@ -1,0 +1,3 @@
+Pushes questions to an already-open layout forge. The forge UI will transition from loading/processing state to showing the questions. Can be called multiple times for multi-round flows. Call layout_await_completion after this to wait for user answers. IMPORTANT: Question labels, option labels, and descriptions MUST be written in the user's input language (match whatever language the user is speaking). 
+
+CONTEXT RULE: Generate questions based ONLY on the session brief, previous user answers, and explicitly linked files. Do NOT let unrelated codebase documents influence question content or options.

@@ -1,0 +1,1 @@
+Pushes a text message to the forge browser UI. Use this to show intermediate results, layout proposals, or status updates to the user while they remain in the browser. After pushing a layout proposal, you MUST follow up with layout_push_questions to ask the user for approval/feedback, then call layout_await_completion. Do NOT call layout_close immediately after pushing a message.

@@ -1,0 +1,3 @@
+Closes the layout forge session and stops the server. IMPORTANT: Only call this AFTER the user has explicitly approved the layout. The typical flow is: push layout message -> push feedback questions -> await user approval -> close. Do NOT call this immediately after pushing a layout proposal without getting user feedback first.
+
+WARNING: Do NOT call layout_close while the session is in "prompt-ready" phase. The user is still reviewing the generated prompt in the browser. Wait for them to dismiss it first. The close call will be rejected if the session is in prompt-ready phase.
